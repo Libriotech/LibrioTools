@@ -25,6 +25,7 @@
 use Getopt::Long;
 use Pod::Usage;
 use MARC::File::USMARC;
+use MARC::File::XML;
 use SimpleMARC;
 use Encode;
 
@@ -308,7 +309,10 @@ while (my $record = $batch->next()) {
 	print "----------------------------------------\n" if $debug;
 	if ($debug) {
 	  print $record->as_formatted(), "\n";
-	} else {
+	# TODO: Enable output as MARCXML 
+	# } elsif ($xml) {
+	#   print $record->as_xml(), "\n"; 
+    } else {
 	  print $record->as_usmarc(), "\n";	
 	}
     print "########################################\n" if $debug;  
