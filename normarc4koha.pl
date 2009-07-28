@@ -53,7 +53,7 @@ my $batch = MARC::File::USMARC->in($input_file);
 my $count = 0;
 
 my $xmloutfile = '';
-if ($xml) {
+if ($xml && !$debug) {
   $xmloutfile = MARC::File::XML->out($xml, 'UTF-8');
 }
 
