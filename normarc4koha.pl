@@ -52,6 +52,11 @@ print "Stopping after $limit records\n" if $debug && $limit;
 my $batch = MARC::File::USMARC->in($input_file);
 my $count = 0;
 
+my $xmloutfile = '';
+if ($xml) {
+  $xmloutfile = MARC::File::XML->out($xml, 'UTF-8');
+}
+
 print "Starting records iteration\n" if $debug;
 ## iterate through our marc files and do stuff
 while (my $record = $batch->next()) {
@@ -192,7 +197,7 @@ while (my $record = $batch->next()) {
   
   		# o = Full call number 
 		if (my $field096 = $record->field('096')) {
-  		  $field952->add_subfields('o' => encode_utf8($field096->subfield('a')));
+  		  $field952->add_subfields('o' => $field096->subfield('a'));
   		}
   
   		# p = Barcode
@@ -211,10 +216,10 @@ while (my $record = $batch->next()) {
   		# t = Copy number	
   		if (my $field099b = $field099->subfield('b')) {
 			  if (length($field099b) < 7) {
-  		    $field952->add_subfields('t' => encode_utf8($field099b));
+  		    $field952->add_subfields('t' => $field099b);
   		  } else {
 			    # h = Serial Enumeration / chronology
-			    $field952->add_subfields('h' => encode_utf8($field099b));
+			    $field952->add_subfields('h' => $field099b);
 				}
 			}
   
@@ -307,13 +312,25 @@ while (my $record = $batch->next()) {
 	}
 	
 	print "----------------------------------------\n" if $debug;
-	if ($debug) {
-	  print $record->as_formatted(), "\n";
-	} elsif ($xml) {
-	  print $record->as_xml(), "\n"; 
+	
+	if ($xml) {
+
+	  if ($debug) {
+	    print $record->as_xml(), "\n";
+	  } else {
+	    $xmloutfile->write($record);
+	  } 
+	
+	} elsif ($debug) {
+	
+      print $record->as_formatted(), "\n";
+    
     } else {
+	
 	  print $record->as_usmarc(), "\n";	
+	
 	}
+    
     print "########################################\n" if $debug;  
 	
 	$count++;
@@ -408,7 +425,7 @@ sub get_options {
   GetOptions("i|infile=s" => \$input_file,
 	         "s|system=s" => \$system, 
              "d|debug!" => \$debug,
-             "x|xml" => \$xml, 
+             "x|xml=s" => \$xml, 
 			 "l|limit=s" => \$limit, 
              'h|?|help'   => \$help
              );
@@ -463,7 +480,8 @@ Stop processing after n records.
 
 =item B<-x, --xml>
 
-Output records as MARCXML
+Output records as MARCXML. Give filename as argument e.g.: 
+normarc4koha.pl -i inputfile -s system -x out.xml [-d] [-l] [-h]
 
 =item B<-h, -?, --help>
                                                
