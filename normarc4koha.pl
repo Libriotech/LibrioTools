@@ -26,7 +26,7 @@ use Getopt::Long;
 use Pod::Usage;
 use MARC::File::USMARC;
 use MARC::File::XML;
-use SimpleMARC;
+# use SimpleMARC;
 use Encode;
 
 use strict;
@@ -43,7 +43,7 @@ my %item_types = (
 );
 
 ## get command line options
-my ($input_file, $system, $limit, $debug) = get_options();
+my ($input_file, $system, $limit, $debug, $xml) = get_options();
 print "\nStarting normarc4koha\n" if $debug;
 print "Input File: $input_file\n" if $debug;
 print "Converting from: $system\n" if $debug;
@@ -62,7 +62,7 @@ while (my $record = $batch->next()) {
 
 	if ($system eq 'bibliofil') {
 	
-    copy_field( $record, '850', 'a', '952', 'a' ) or die("Couldn't copy 850a to 952a");
+      copy_field( $record, '850', 'a', '952', 'a' ) or die("Couldn't copy 850a to 952a");
 
 	} elsif ($system eq 'tidemann') {
 	  
@@ -111,7 +111,7 @@ while (my $record = $batch->next()) {
 		# BUILD FIELD 952, mostly based on data from 099
 		
 		my @field099s = $record->field('099');
-    foreach my $field099 (@field099s) {
+        foreach my $field099 (@field099s) {
 		
 		  # Comments below are from 
 			# http://wiki.koha.org/doku.php?id=en:documentation:marc21holdings_holdings_data_information_for_vendors&s[]=952
@@ -211,10 +211,10 @@ while (my $record = $batch->next()) {
   		# t = Copy number	
   		if (my $field099b = $field099->subfield('b')) {
 			  if (length($field099b) < 7) {
-  		    $field952->add_subfields('t' => $field099b);
+  		    $field952->add_subfields('t' => encode_utf8($field099b));
   		  } else {
 			    # h = Serial Enumeration / chronology
-			    $field952->add_subfields('h' => $field099b);
+			    $field952->add_subfields('h' => encode_utf8($field099b));
 				}
 			}
   
@@ -309,9 +309,8 @@ while (my $record = $batch->next()) {
 	print "----------------------------------------\n" if $debug;
 	if ($debug) {
 	  print $record->as_formatted(), "\n";
-	# TODO: Enable output as MARCXML 
-	# } elsif ($xml) {
-	#   print $record->as_xml(), "\n"; 
+	} elsif ($xml) {
+	  print $record->as_xml(), "\n"; 
     } else {
 	  print $record->as_usmarc(), "\n";	
 	}
@@ -403,11 +402,13 @@ sub get_options {
   my $system = '';
   my $debug = '';
   my $limit = 0;
+  my $xml = '';
   my $help = '';
 
   GetOptions("i|infile=s" => \$input_file,
 	         "s|system=s" => \$system, 
              "d|debug!" => \$debug,
+             "x|xml" => \$xml, 
 			 "l|limit=s" => \$limit, 
              'h|?|help'   => \$help
              );
@@ -416,7 +417,7 @@ sub get_options {
   pod2usage( -msg => "\nMissing Argument: -i, --infile required\n", -exitval => 1) if !$input_file;
   pod2usage( -msg => "\nMissing Argument: -s, --system required\n", -exitval => 1) if !$system;
 
-  return ($input_file, $system, $limit, $debug);
+  return ($input_file, $system, $limit, $debug, $xml);
 }       
 
 sub getToday {
@@ -429,139 +430,6 @@ sub getToday {
   return $date;
 }
 
-sub get_item_type {
-  my ( $branchcode, $callnumber ) = @_;
-  if ( $branchcode eq 'MPL' ) {
-    if ( $callnumber =~ /^[0-9]/ ) { return 'NF'; }
-    if ( $callnumber =~ /^JR |JREF |JUV REF / ) { return 'JREF'; } 
-    if ( $callnumber =~ /^JUV [0-9]/ ) { return 'JNF'; }
-    if ( $callnumber =~ /^JUV BOC / ) { return 'JBOC'; }
-    if ( $callnumber =~ /^JUV E |JUV ER |JUV BOARD BOOK/ ) { return 'EASY'; }
-    if ( $callnumber =~ /^JUV FIC / ) { return 'JFIC'; }
-    if ( $callnumber =~ /^JUV PB / ) { return 'JPB'; }
-    if ( $callnumber =~ /^JUV (CASSETTE|CS) / ) { return 'JCAS'; }
-    if ( $callnumber =~ /^CCFLS J |CCFLS JUV |ECLS / ) { return 'JBOC'; }
-    if ( $callnumber =~ /^JUV BOOK BAG/ ) { return 'BB'; }
-    if ( $callnumber =~ /^JUV VCR |JVCR |jVCR / ) { return 'JVHS'; }
-    if ( $callnumber =~ /^TOY COLLECTION/ ) { return 'TOYS'; }
-    if ( $callnumber =~ /^JUV PERIODICAL/ ) { return 'JMAG'; }
-    if ( $callnumber =~ /^JHS |JUV HS |J HS/ ) { return 'JHS'; }    
-    if ( $callnumber =~ /^JUV HS PERIODICAL/ ) { return 'JMAG'; }    
-    if ( $callnumber =~ /^JUV VF / ) { return 'JPF'; }
-    if ( $callnumber =~ /^JUV P |JUV PARENTS COLLECTION / ) { return 'JPT'; }
-    if ( $callnumber =~ /^FIC LARGE PRINT |LP / ) { return 'LP'; }
-    if ( $callnumber =~ /^BOC |BOC FIC |FIC BOC |FIC BOOKS ON CASSETTE / ) { return 'BOC'; }
-    if ( $callnumber =~ /^VCR / ) { return 'VHS'; }
-    if ( $callnumber =~ /^PERIODICAL|STAFF PERIODICAL/ ) { return 'MAG'; }
-    if ( $callnumber =~ /^VF / ) { return 'PF'; }
-    if ( $callnumber =~ /^FIC D |FIC-D / ) { return 'DF'; }
-    if ( $callnumber =~ /^FIC R |FIC-R / ) { return 'RF'; }
-    if ( $callnumber =~ /^FIC SC |SC / ) { return 'SC'; }
-    if ( $callnumber =~ /^FIC SF |SF / ) { return 'SF'; }
-    if ( $callnumber =~ /^FIC W |FIC-W / ) { return 'W'; }
-    if ( $callnumber =~ /^FIC PBC |FIC-PBC |PB / ) { return 'PB'; }
-    if ( $callnumber =~ /^FIC PBC D |FIC PBC-D / ) { return 'PBCD'; }
-    if ( $callnumber =~ /^FIC PBC C |FIC PBC CLASSIC |FIC PBC-CLASSIC / ) { return 'PBCC'; }
-    if ( $callnumber =~ /^FIC PBC SF |FIC PBC-SF / ) { return 'PBSF'; }
-    if ( $callnumber =~ /^FIC PBC W |FIC PBC-W / ) { return 'PBCW'; }
-    if ( $callnumber =~ /^FIC PBC YA |FIC PBC-YA / ) { return 'YAPB'; }
-    if ( $callnumber =~ /^FIC YA / ) { return 'YAF'; }
-    if ( $callnumber =~ /^CASSETTE |CS / ) { return 'CAS'; }
-    if ( $callnumber =~ /^CD / ) { return 'CD'; }
-    if ( $callnumber =~ /^PB YA / ) { return 'YAPB'; }
-    if ( $callnumber =~ /^READ PROGRAM / ) { return 'VHS'; }
-    if ( $callnumber =~ /^COLLEGE / ) { return 'TEMP'; }
-    if ( $callnumber =~ /^CCFLS / ) { return 'BOC'; }
-    if ( $callnumber =~ /^FIC PERIODICAL|YA PERIODICAL/ ) { return 'MAG'; }
-    if ( $callnumber =~ /^OS / ) { return 'O'; }
-    if ( $callnumber =~ /^BCD |CCFLS BCD / ) { return 'BCD'; }
-    if ( $callnumber =~ /^JCCFLS CD / ) { return 'JBCD'; }
-    if ( $callnumber =~ /^JDVD |JUV DVD |jDVD / ) { return 'JDVD'; }
-    if ( $callnumber =~ /^JCD |JUV CD / ) { return 'JCD'; }
-    if ( $callnumber =~ /^JBCD |JUV BCD / ) { return 'JBCD'; }
-    if ( $callnumber =~ /^DVD / ) { return 'DVD'; }
-    if ( $callnumber =~ /^YA BOC / ) { return 'YBOC'; }
-    if ( $callnumber =~ /^YA BCD / ) { return 'YBCD'; }
-    if ( $callnumber =~ /^YA / ) { return 'YANF'; }
-    if ( $callnumber =~ /^FIC / ) { return 'FIC'; }
-    if ( $callnumber =~ /^MAGAZINE|NEWSPAPER/i) { return 'MAG'; }
-    if ( $callnumber =~ /^R STAF |REF STAFF |R |REF |REFERENCE / ) { return 'REF'; }    
-    die("Cannot match callnumber $callnumber to any known item type");
-  } elsif ( $branchcode eq 'SAEG' ) {
-    if ( $callnumber eq 'Default' ) { return '1'; }
-    if ( $callnumber =~ /^B |920 /) { return 'BIO'; }
-    if ( $callnumber =~ /^J Cass|J Books on Cass|J CD /i) { return 'BB'; }
-    if ( $callnumber =~ /^AC J /) { return 'JBOC'; }
-    if ( ( $callnumber =~ /^AC F |AC FIC |AC / ) && !( $callnumber =~ /^AC J /) ) { return 'BOC'; }
-    if ( $callnumber =~ /^CD |CD F /) { return 'BCD'; }
-    if ( $callnumber =~ /^DVD /) { return 'DVD'; }
-    if ( $callnumber =~ /^FIC /) { return 'FIC'; }
-    if ( $callnumber =~ /^J B |J 920 |JB /) { return 'JBIO'; }
-    if ( $callnumber =~ /^J DVD /) { return 'JDVD'; }
-    if ( $callnumber =~ /^J FIC |J F /) { return 'JFIC'; }
-    if ( $callnumber =~ /^Juvenile Mag|Juv Mag/i) { return 'JMAG'; }
-    if ( $callnumber =~ /^J [0-9][0-9][0-9]+/) { return 'JNF'; }
-    if ( $callnumber =~ /^J PB /) { return 'JPB'; }
-    if ( $callnumber =~ /^J SC /) { return 'JSC'; }
-    if ( $callnumber =~ /^JUV VIDEO/i) { return 'JVHS'; }
-    if ( $callnumber =~ /^ADULT PERIODICAL|PERIODICAL|MAGAZINE/i) { return 'MAG'; }
-    if ( $callnumber =~ /^ADULT MUSIC CD/i) { return 'CD'; }
-    if ( $callnumber =~ /^[0-9][0-9][0-9]+/) { return 'NF'; }    
-    if ( $callnumber =~ /^Vertical|Local Hist/i) { return 'PF'; }    
-    if ( $callnumber =~ /^REF [0-9][0-9][0-9]+/) { return 'REF'; }    
-    if ( $callnumber =~ /^SC /) { return 'SC'; }    
-    if ( $callnumber =~ /^ADULT VIDEO/i) { return 'VHS'; }        
-    if ( $callnumber =~ /^YA FIC |YA F /) { return 'YAF'; }        
-    if ( $callnumber =~ /^YA PB/i) { return 'YAPB'; }
-    return '1';
-    print("Cannot match callnumber $callnumber to any known item type.") && die();
-  } elsif ( $branchcode eq 'BEN' ) {
-    if ( $callnumber eq 'Default' ) { return '1'; }
-    if ( $callnumber =~ /^PER|MAG/i) { return 'MAG'; }
-    return '1';
-    print("Cannot match callnumber $callnumber to any known item type.") && die();
-  } elsif ( $branchcode eq 'COCH' ) {
-    if ( $callnumber eq 'Default' ) { return '1'; }
-    if ( $callnumber =~ /^PER|MAG/i) { return 'MAG'; }
-    if ( $callnumber =~ /^F |FIC |FICTION |\[F /i) { return 'FIC'; }    
-    if ( $callnumber =~ /^REF |REFERENCE |\[R /i) { return 'REF'; }
-    if ( $callnumber =~ /^92|B | BIO|\[B /i) { return 'BIO'; }
-    if ( $callnumber =~ /^E |EAS |\[E /i) { return 'EASY'; }            
-    if ( $callnumber =~ /^[0-9][0-9][0-9]+/) { return 'NF'; }        
-    if ( $callnumber =~ /^SC |STORY COLLECTION |\[SC /i) { return 'SC'; }
-    if ( $callnumber =~ /^J FIC/i) { return 'JFIC'; }        
-    if ( $callnumber =~ /^J [0-9][0-9][0-9]+/) { return 'JNF'; }    
-    if ( $callnumber =~ /^ADULT PERIODICAL|PERIODICAL|MAGAZINE/i) { return 'MAG'; }
-    return '1';
-    print("Cannot match callnumber $callnumber to any known item type.") && die();
-  } elsif ( $branchcode eq 'STON' ) {
-    if ( $callnumber eq 'Default' ) { return '1'; }
-    if ( $callnumber =~ /^PER|MAG|JUV PER/i) { return 'MAG'; }
-    if ( $callnumber =~ /^F |FIC |FICTION |\[F /i) { return 'FIC'; }    
-    if ( $callnumber =~ /^REF |REFERENCE |\[R /i) { return 'REF'; }
-    if ( $callnumber =~ /^92|092|B | BIO|\[B /i) { return 'BIO'; }
-    if ( $callnumber =~ /^E |EAS |\[E /i) { return 'EASY'; }            
-    if ( $callnumber =~ /^808|SC |STORY COLLECTION |\[SC /i) { return 'SC'; }
-    if ( $callnumber =~ /^[0-9][0-9][0-9]+/) { return 'NF'; }        
-    if ( $callnumber =~ /^J [0-9][0-9][0-9]+/) { return 'JNF'; }
-    if ( $callnumber =~ /^J|\[J /i) { return 'JUV'; }                
-    return '1';
-    print("Cannot match callnumber $callnumber to any known item type.") && die();
-  } elsif ( $branchcode eq 'LINE' ) {
-    if ( $callnumber eq 'Default' ) { return '1'; }
-    if ( $callnumber =~ /^PER|MAG/i) { return 'MAG'; }
-    if ( $callnumber =~ /^F |FIC |FICTION |\[F /i) { return 'FIC'; }    
-    if ( $callnumber =~ /^REF |REFERENCE |\[R /i) { return 'REF'; }
-    if ( $callnumber =~ /^92|B | BIO|\[B /i) { return 'BIO'; }
-    if ( $callnumber =~ /^E |EAS |\[E /i) { return 'EASY'; }            
-    if ( $callnumber =~ /^808|SC |STORY COLLECTION |\[SC /i) { return 'SC'; }    
-    if ( $callnumber =~ /^[0-9][0-9][0-9]+/) { return 'NF'; }        
-    if ( $callnumber =~ /^J [0-9][0-9][0-9]+/) { return 'JNF'; }    
-    if ( $callnumber =~ /^J|\[J /i) { return 'JUV'; }                    
-    return '1';
-    print("Cannot match callnumber $callnumber to any known item type.") && die();
-  }
-}
 
 __END__
 
@@ -571,7 +439,7 @@ normarc4koha.pl - Processes MARC from Norwegian ILSs for import into Koha.
         
 =head1 SYNOPSIS
             
-normarc4koha.pl -i inputfile -s system [-d] [-l] [-h] > outputfile
+normarc4koha.pl -i inputfile -s system [-d] [-l] [-x] [-h] > outputfile
                
 =head1 OPTIONS
               
@@ -592,6 +460,10 @@ Records in line format and details of the process will be printed to stdout
 =item B<-l, --limit>
 
 Stop processing after n records.
+
+=item B<-x, --xml>
+
+Output records as MARCXML
 
 =item B<-h, -?, --help>
                                                

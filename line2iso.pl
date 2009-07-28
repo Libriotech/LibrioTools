@@ -18,6 +18,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 use MARC::File::USMARC;
+use MARC::File::XML;
 use MARC::Record;
 use Getopt::Long;
 use File::Slurp;
@@ -25,18 +26,24 @@ use strict;
 
 # Options
 my $file = '';
-GetOptions ('i|input=s' => \$file);
+my $xml = '';
+GetOptions (
+  'i|input=s' => \$file, 
+  'x|xml' => \$xml 
+);
 
 # Usage
 if (!$file) {
   print "
-This will turn a file of MARC-records in line format into ISO2709.
+This will turn a file of MARC-records in line format into ISO2709 or MARCXML.
 
 Usage:
   ./line2iso.pl -i in.txt > out.mrc
+  ./line2iso.pl -i in.txt -x > out.xml
 
 Options:
   -i --input = Input file
+  -x --xml = Outout as MARCXML
 
 See also:
   yaz-marcdump http://www.indexdata.com/yaz/doc/yaz-marcdump.html
@@ -77,7 +84,11 @@ foreach my $line (@lines) {
   	# print "\nEND OF RECORD $num";
   	
   	# Output the record
-  	print $record->as_usmarc(), "\n";
+  	if ($xml) {
+  	  print $record->as_xml(), "\n";
+  	} else {
+  	  print $record->as_usmarc(), "\n";
+  	}
   	
   	# Start over with an empty record
   	$record = MARC::Record->new();
