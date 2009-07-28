@@ -27,8 +27,10 @@ use strict;
 # Options
 my $file = '';
 my $xml = '';
+my $limit = '';
 GetOptions (
   'i|input=s' => \$file, 
+  'l|limit=i' => \$limit, 
   'x|xml' => \$xml 
 );
 
@@ -43,6 +45,7 @@ Usage:
 
 Options:
   -i --input = Input file
+  -l, --limit = Limit outout to first n records
   -x --xml = Outout as MARCXML
 
 See also:
@@ -66,6 +69,7 @@ my $record = MARC::Record->new();
 
 # Counter for records
 my $num = 0;
+
 # Make chomp() behave 
 $/ = "\r\n";
 
@@ -95,6 +99,11 @@ foreach my $line (@lines) {
   	
   	# Count the records
   	$num++;
+  	
+  	# Check if we should quit here
+  	if ($limit && $limit == $num) {
+  		last;
+  	}
   	
   	# Process the next line
   	next;
