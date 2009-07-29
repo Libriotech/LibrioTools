@@ -54,7 +54,7 @@ my $count = 0;
 
 my $xmloutfile = '';
 if ($xml && !$debug) {
-  $xmloutfile = MARC::File::XML->out($xml, 'UTF-8');
+  $xmloutfile = MARC::File::XML->out($xml);
 }
 
 print "Starting records iteration\n" if $debug;
@@ -107,8 +107,11 @@ while (my $record = $batch->next()) {
   		# n	Suppress in OPAC
   		# s	Serial record flag
   		# 0	Koha issues (borrowed), all copies
+  		
   		# 2	Source of classification or shelving scheme
-  		$field942->add_subfields('2' => 'ddc');
+  		# Values are in class_source.cn_source
+  		# TODO: ddc or z based on makeup of callnumber
+  		$field942->add_subfields('2' => 'z');
   		# 6	Koha normalized classification for sorting
   		
   		$record->append_fields($field942);
@@ -272,6 +275,9 @@ while (my $record = $batch->next()) {
   
   		# 2 = Source of classification or shelving scheme
   		# cn_source
+  		# Values are in class_source.cn_source
+  		# TODO: ddc or z based on makeup of callnumber
+  		$field952->add_subfields('2' => 'z'); 
   
   		# 3 = Materials specified (bound volume or other part)
   
