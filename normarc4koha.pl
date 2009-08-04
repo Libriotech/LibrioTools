@@ -47,7 +47,7 @@ my %item_types = (
   'småtrykk'   => 'BOK',
   'tegneserie' => 'BOK',
   'eng'        => 'BOK',
-  'kombidokumentv' => 'BOK',
+  'kombidokument' => 'BOK',
   'e-bok'      => 'EBOK', 
   'lydopptak'  => 'LBOK', 
   'vhs'        => 'VID', 
@@ -56,9 +56,7 @@ my %item_types = (
   'elektronisk ressurs'  => 'DIG',
   'dvd-rom'    => 'DIG',
   'cd-rom'     => 'DIG', 
-  'maskinlesbar fil'  => 'DIG', 
-  'artikkel'   => 'ART'
-  
+  'maskinlesbar fil'  => 'DIG'
 );
 
 ## get command line options
