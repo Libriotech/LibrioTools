@@ -26,6 +26,7 @@ use Getopt::Long;
 use Pod::Usage;
 use MARC::File::USMARC;
 use MARC::File::XML;
+use String::Strip;
 # use SimpleMARC;
 use Encode;
 
@@ -35,11 +36,29 @@ use strict;
 open STDERR, ">&STDOUT" or die "cannot dup STDERR to STDOUT: $!\n";
 
 # Define mapping from item types in source to codes for Koha item types
+# To be used in 942c and 952y
 # We will lc before comparing, so use lowercase in the keys
 my %item_types = (
   'dvd'        => 'DVD', 
   'tidsskrift' => 'TIDS', 
-  'bok'        => 'BOK'
+  'bok'        => 'BOK', 
+  'rapport'    => 'BOK',
+  'hefte'      => 'BOK',
+  'småtrykk'   => 'BOK',
+  'tegneserie' => 'BOK',
+  'eng'        => 'BOK',
+  'kombidokumentv' => 'BOK',
+  'e-bok'      => 'EBOK', 
+  'lydopptak'  => 'LBOK', 
+  'vhs'        => 'VID', 
+  'videogram'  => 'VID', 
+  'video'      => 'VID', 
+  'elektronisk ressurs'  => 'DIG',
+  'dvd-rom'    => 'DIG',
+  'cd-rom'     => 'DIG', 
+  'maskinlesbar fil'  => 'DIG', 
+  'artikkel'   => 'ART'
+  
 );
 
 ## get command line options
@@ -83,6 +102,7 @@ while (my $record = $batch->next()) {
   		# a	Institution code [OBSOLETE]
   		# c	Koha [default] item type
   		if (my $field245h = lc($record->subfield('245', 'h'))) {
+  		  StripLTSpace($field245h);
 		  if ($item_types{$field245h}) {
 		    $field942->add_subfields('c' => $item_types{$field245h});
 		  } else {
@@ -205,7 +225,7 @@ while (my $record = $batch->next()) {
   
   		# p = Barcode
   		# max 20 characters 
-			# TODO: 099a or 099k? 
+		# TODO: 099a or 099k? 
   		if (my $field099a = $field099->subfield('a')) {
   		  $field952->add_subfields('p' => $field099a);
   		}
@@ -237,11 +257,10 @@ while (my $record = $batch->next()) {
   		# x = Non-public note
   
   		# y = Koha item type
-  		# TODO: Add more and realistic values
 		# coded value, required field for circulation 	 
 		# Coded value, must be defined in System Administration > Item types and Circulation Codes
-		# 245h = DVD
 		if (my $field245h = lc($record->subfield('245', 'h'))) {
+		  StripLTSpace($field245h);
 		  if ($item_types{$field245h}) {
 		    $field952->add_subfields('y' => $item_types{$field245h});
 		  } else {
