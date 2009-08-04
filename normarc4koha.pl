@@ -127,11 +127,21 @@ while (my $record = $batch->next()) {
   		# 0	Koha issues (borrowed), all copies
   		
   		# 2	Source of classification or shelving scheme
-  		# Values are in class_source.cn_source
-  		# TODO: ddc or z based on makeup of callnumber
-  		$field942->add_subfields('2' => 'z');
+  		# Values are in class_sources.cn_source
+  		# If 
+  		if ($record->field('096') && $record->field('096')->subfield('a')) {
+  		  my $field096a = $record->field('096')->subfield('a');
+  		  if ($field096a =~ m/^[0-9]{3,}.*/) {
+  		    $field942->add_subfields('2' => 'ddc');
+  		    print "$field096a = ddc\n";
+  		  } else {
+  		    $field942->add_subfields('2' => 'z');
+  		    print "$field096a = z\n";
+  		  }
+  		}
   		# 6	Koha normalized classification for sorting
   		
+  		# Add this field to the record
   		$record->append_fields($field942);
   				
 		# BUILD FIELD 952, mostly based on data from 099
