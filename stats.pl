@@ -27,13 +27,15 @@ my %allowed_fields = get_allowed_fields();
 
 # Options
 my $file = '';
+my $dump = '';
 my $getfield = '';
 my $missing = '';
 my $valueof = '';
 my $verbose = '';
 GetOptions (
-  'i|input=s'  => \$file, 
-  'field=s' => \$getfield, 
+  'i|input=s' => \$file, 
+  'dump'      => \$dump, 
+  'field=s'   => \$getfield, 
   'missing=s' => \$missing,
   'valueof=s' => \$valueof,  
   'v|verbose' => \$verbose
@@ -53,6 +55,7 @@ USAGE:
 
 Options: 
 -i --input  = Input file
+--dump = Just dump all the records in mnemonic form
 --field = Print contents of given field + identfier of containing record 
 --missing = Print records that do not have the given field e.g. 245
 --valueof = Show values from this subfield, e.g. 600a
@@ -78,7 +81,12 @@ my $marcfile = MARC::File::USMARC->in($file);
 
 while ( my $record = $marcfile->next() ) {
 	
-	if ($missing) {
+	if ($dump) {
+		
+	  print $record->as_formatted(), "\n";
+	  print "----------------------------------------\n";
+	  
+	} elsif ($missing) {
 	
 	  if (!$record->field($missing)) {
 		  print $record->as_formatted(), "\n";
@@ -179,6 +187,8 @@ if ($valueof) {
 	
 }
 
+# Allowed fields according to NORMARC
+# TODO: Allow user to select MARC21 as an option? 
 sub get_allowed_fields {
 
   return (
