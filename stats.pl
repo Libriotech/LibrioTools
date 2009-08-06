@@ -188,6 +188,7 @@ if ($valueof) {
 }
 
 # Allowed fields according to NORMARC
+# TODO: Fill in all the subfields (not actually used at he moment, though)
 # TODO: Allow user to select MARC21 as an option? 
 sub get_allowed_fields {
 
