@@ -71,7 +71,6 @@ foreach my $record_abs_line (@record_abs_file) {
     	next;
     }
     my $index_string = $2;
-    # print "$tag\n";
     my @indexes = split(/,/, $index_string);
     foreach my $index (@indexes) {
     	push @{ $record_abs{$index} }, $tag;
@@ -110,16 +109,9 @@ if ($interactive) {
 
 } else {
 	
-	# print Dumper %record_abs;
-	
 	for my $index (sort(keys %record_abs)) {
 	    print "$index -> @{ $record_abs{$index} }\n";
 	}
-	
-	foreach my $this ($record_abs{'Name-and-title'}) {
-	#  print "$this\n";
-	}
-
 	
 }
 
