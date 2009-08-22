@@ -35,16 +35,21 @@ open STDERR, ">&STDOUT" or die "cannot dup STDERR to STDOUT: $!\n";
 my ($dialect, $dev, $interactive, $debug) = get_options();
 
 # Default locations
-my $record_abs_path = "/etc/koha/zebradb/marc_defs/" . $dialect . "/biblios/record.abs";
+my $record_abs_path = '/etc/koha/zebradb/marc_defs/' . $dialect . '/biblios/record.abs';
+my $bib1_att_path   = '/etc/koha/zebradb/biblios/bib1.att';
 
 # dev install
 if ($dev) {
-  $record_abs_path = $dev . "etc/zebradb/marc_defs/" . $dialect . "/biblios/record.abs";
+  $record_abs_path = $dev . 'etc/zebradb/marc_defs/' . $dialect . '/biblios/record.abs';
+  $bib1_att_path   = $dev . 'etc/zebradb/biblios/etc/bib1.att';
 } 
 
 # Check presence of files
 if (!-e $record_abs_path) {
-  die "Can't find record.abs at $record_abs_path"
+  die "Can't find record.abs at $record_abs_path";
+}
+if (!-e $bib1_att_path) {
+  die "Can't find bib1.att at $bib1_att_path";
 }
 
 # PARSE
@@ -81,6 +86,20 @@ foreach my $record_abs_line (@record_abs_file) {
   }
 }
 
+# Process bib1.att
+my %att2zindex;
+my %zindex2att;
+my @bib1_att_file = read_file($bib1_att_path);
+foreach my $bib1_att_line (@bib1_att_file) {
+	if (substr($bib1_att_line, 0, 3) eq 'att') {
+		StripLTSpace($bib1_att_line);
+		$bib1_att_line =~ m/att ([0-9]{1,4}) {1,}(.*)/ig;
+		my $att = '1=' . $1;
+		my $zindex = $2;
+		push @{ $att2zindex{$att} }, $zindex;
+		push @{ $zindex2att{$zindex} }, $att;
+	}
+}
 # OUTPUT
 
 if ($interactive) {
@@ -94,6 +113,7 @@ if ($interactive) {
 		my $in = $_;
 		if ($in eq 'q') {
 			exit;
+		# Print out keys from the hashes
 		} elsif ($in eq 'all') {
 			print "use:\nall zindex\nall marc\n";
 		} elsif ($in eq 'all zindex') {
@@ -106,10 +126,18 @@ if ($interactive) {
 	    		print "$index ";
 			}
 			print "\n";
+		# Use input as key to look up values
 		} elsif ($zindex2marc{$in}) { 
 			print $OUT "$in -> @{ $zindex2marc{$in} }\n";
 		} elsif ($marc2zindex{$in}) { 
 			print $OUT "$in -> @{ $marc2zindex{$in} }\n";
+		} elsif ($att2zindex{$in}) { 
+			print $OUT "$in -> @{ $att2zindex{$in} }";
+			my $zindex = "@{ $att2zindex{$in} }";
+			if ($zindex2marc{$zindex}) { 
+				print $OUT " -> @{ $zindex2marc{$zindex} }";
+			}
+			print $OUT "\n";
 		}
 		$term->addhistory($_) if /\S/;
 	}
@@ -121,8 +149,9 @@ if ($interactive) {
 } else {
 	
 	for my $index (sort(keys %zindex2marc)) {
-	    print "$index -> @{ $zindex2marc{$index} }\n";
+	    # print "$index -> @{ $zindex2marc{$index} }\n";
 	}
+	
 	
 }
 
