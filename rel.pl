@@ -95,7 +95,14 @@ if ($interactive) {
 		if ($in eq 'q') {
 			exit;
 		} elsif ($in eq 'all') {
+			print "use:\nall zindex\nall marc\n";
+		} elsif ($in eq 'all zindex') {
 			for my $index (sort(keys %zindex2marc)) {
+	    		print "$index ";
+			}
+			print "\n";
+		} elsif ($in eq 'all marc') {
+			for my $index (sort(keys %marc2zindex)) {
 	    		print "$index ";
 			}
 			print "\n";
