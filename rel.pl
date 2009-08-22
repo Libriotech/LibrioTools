@@ -50,7 +50,8 @@ if (!-e $record_abs_path) {
 # PARSE
 
 # Prcocess record.abs
-my %record_abs;
+my %zindex2marc;
+my %marc2zindex;
 my @record_abs_file = read_file($record_abs_path);
 foreach my $record_abs_line (@record_abs_file) {
   if (substr($record_abs_line, 0, 4) eq 'melm') {
@@ -58,6 +59,7 @@ foreach my $record_abs_line (@record_abs_file) {
     $record_abs_line =~ m/melm ([0-9a-z\$]+) {2,}(.*)/ig;
     my $tag = $1;
     my $tag_num = substr($tag, 0, 3);
+    # Skip control-fields, for now
     if ($tag_num eq '000' || 
         $tag_num eq '001' || 
         $tag_num eq '002' || 
@@ -73,7 +75,8 @@ foreach my $record_abs_line (@record_abs_file) {
     my $index_string = $2;
     my @indexes = split(/,/, $index_string);
     foreach my $index (@indexes) {
-    	push @{ $record_abs{$index} }, $tag;
+    	push @{ $zindex2marc{$index} }, $tag;
+    	push @{ $marc2zindex{$tag} }, $index;
     }
   }
 }
@@ -92,25 +95,26 @@ if ($interactive) {
 		if ($in eq 'q') {
 			exit;
 		} elsif ($in eq 'all') {
-			for my $index (sort(keys %record_abs)) {
+			for my $index (sort(keys %zindex2marc)) {
 	    		print "$index ";
 			}
 			print "\n";
-		}
-		if ($record_abs{$in}) { 
-			print $OUT "$in -> @{ $record_abs{$in} }\n";
+		} elsif ($zindex2marc{$in}) { 
+			print $OUT "$in -> @{ $zindex2marc{$in} }\n";
+		} elsif ($marc2zindex{$in}) { 
+			print $OUT "$in -> @{ $marc2zindex{$in} }\n";
 		}
 		$term->addhistory($_) if /\S/;
 	}
 
 } elsif ($debug) {
 	
-	print Dumper %record_abs;
+	print Dumper %zindex2marc;
 
 } else {
 	
-	for my $index (sort(keys %record_abs)) {
-	    print "$index -> @{ $record_abs{$index} }\n";
+	for my $index (sort(keys %zindex2marc)) {
+	    print "$index -> @{ $zindex2marc{$index} }\n";
 	}
 	
 }
@@ -158,7 +162,7 @@ Specify a MARC dialect. MARC21 is default.
                                                    
 =item B<-d --dev>
 
-Path to the root of a dev-install. 
+Absolute or relative path to the root of a dev-install, include trailing slash. 
 
 =item B<-i --interactive>
 
