@@ -131,6 +131,17 @@ if ($interactive) {
 			print $OUT "$in -> @{ $zindex2marc{$in} }\n";
 		} elsif ($marc2zindex{$in}) { 
 			print $OUT "$in -> @{ $marc2zindex{$in} }\n";
+			my $last_seen = '';
+			foreach my $zindex (@{ $marc2zindex{$in} }) {
+				$zindex =~ m/([a-zA-Z-]{2,})[:]{0,1}.*/;
+				$zindex = $1;
+				if ($zindex ne $last_seen) {
+					if ($zindex2att{$zindex}) { 
+						print $OUT "$in -> $zindex -> @{ $zindex2att{$zindex} }\n";
+					}
+				}
+				$last_seen = $zindex;
+			}
 		} elsif ($att2zindex{$in}) { 
 			print $OUT "$in -> @{ $att2zindex{$in} }";
 			my $zindex = "@{ $att2zindex{$in} }";
