@@ -115,9 +115,14 @@ if ($interactive) {
 			exit;
 		# Print out keys from the hashes
 		} elsif ($in eq 'all') {
-			print "use:\nall zindex\nall marc\n";
+			print "use:\nall zindex\nall marc\nall att\n";
 		} elsif ($in eq 'all zindex') {
 			for my $index (sort(keys %zindex2marc)) {
+	    		print "$index ";
+			}
+			print "\n";
+		} elsif ($in eq 'all att') {
+			for my $index (sort(keys %att2zindex)) {
 	    		print "$index ";
 			}
 			print "\n";
