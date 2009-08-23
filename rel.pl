@@ -34,7 +34,7 @@ use Data::Dumper;
 open STDERR, ">&STDOUT" or die "cannot dup STDERR to STDOUT: $!\n";
 
 ## get command line options
-my ($dialect, $dev, $interactive, $debug) = get_options();
+my ($dialect, $dev, $debug) = get_options();
 
 # Default locations
 my $record_abs_path     = '/etc/koha/zebradb/marc_defs/' . $dialect . '/biblios/record.abs';
@@ -48,7 +48,7 @@ if ($dev) {
 	$pqf_properties_path = $dev . 'etc/zebradb/pqf.properties';
 } 
 
-# Check presence of files
+# Check for presence of files
 if (!-e $record_abs_path) {
   die "Can't find record.abs at $record_abs_path";
 }
@@ -138,7 +138,13 @@ foreach my $pqf_properties_line (@pqf_properties_file) {
 
 # OUTPUT
 
-if ($interactive) {
+if ($debug) {
+	
+	# An easy way to short-circuit the script and dum a variable
+	# This is just going to be used during development...
+	print Dumper %marc2zindex_clean;
+
+} else {
 
 	use Term::ReadLine;
 	my $term = new Term::ReadLine 'Relations in Koha';
@@ -243,51 +249,39 @@ if ($interactive) {
 		# $term->addhistory($_) if /\S/;
 	}
 
-} elsif ($debug) {
-	
-	print Dumper %marc2zindex_clean;
-
-} else {
-	
-	for my $index (sort(keys %zindex2marc)) {
-	    # print "$index -> @{ $zindex2marc{$index} }\n";
-	}
-	
-	
-}
+} 
 
 # SUBROUTINES
 
 sub get_options {
   my $dialect = 'marc21'; # default
   my $dev;
-  my $interactive = '';
   my $debug = '';
   my $help = '';
 
   GetOptions('dev=s'      => \$dev,  
              'dialect=s'  => \$dialect, 
-             'i|interactive' => \$interactive, 
              'd|debug' => \$debug, 
              'h|?|help' => \$help
              );
   
   pod2usage(-exitval => 0) if $help;
-#  pod2usage( -msg => "\nMissing Argument: -i, --infile required\n", -exitval => 1) if !$input_file;
-#  pod2usage( -msg => "\nMissing Argument: -s, --system required\n", -exitval => 1) if !$system;
 
-  return ($dialect, $dev, $interactive, $debug);
+  return ($dialect, $dev, $debug);
+  
 }       
 
 __END__
 
 =head1 NAME
     
-rel.pl - Explore relations between MARC-fields, indexes etc in Koha.
+rel.pl - Explore relations between MARC-fields, Zebra indexes, Bib1-attributes etc in Koha.
         
 =head1 SYNOPSIS
             
-normarc4koha.pl -i inputfile -s system [-d] [-l] [-x] [-h] > outputfile
+rel.pl --dialect normarc --dev ../../mydevinstall
+
+Look up things like 245$a, ISSN, dc.resourceIdentifier, 1=4
                
 =head1 OPTIONS
               
@@ -297,13 +291,9 @@ normarc4koha.pl -i inputfile -s system [-d] [-l] [-x] [-h] > outputfile
 
 Specify a MARC dialect. MARC21 is default. 
                                                    
-=item B<-d --dev>
+=item B<--dev>
 
 Absolute or relative path to the root of a dev-install, include trailing slash. 
-
-=item B<-i --interactive>
-
-Enable interactive exploration of relationships. 
 
 =item B<-d --debug>
 
