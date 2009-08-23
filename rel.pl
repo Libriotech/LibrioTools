@@ -122,8 +122,8 @@ foreach my $bib1_att_line (@bib1_att_file) {
 }
 
 # Process pqf.properties
-my %pqf2att;
-my %att2pqf;
+my %pqf_properties2att;
+my %att2pqf_properties;
 my @pqf_properties_file = read_file($pqf_properties_path);
 foreach my $pqf_properties_line (@pqf_properties_file) {
 	if (substr($pqf_properties_line, 0, 6) eq 'index.') {
@@ -131,8 +131,8 @@ foreach my $pqf_properties_line (@pqf_properties_file) {
 		$pqf_properties_line =~ m/^index.([a-zA-Z-\.]{3,}) {1,}= (.*)/ig;
 		my $pqf = $1;
 		my $att = $2;
-		push @{ $pqf2att{$pqf} }, $att;
-		push @{ $att2pqf{$att} }, $pqf;
+		push @{ $pqf_properties2att{$pqf} }, $att;
+		push @{ $att2pqf_properties{$att} }, $pqf;
 	}
 }
 
@@ -174,18 +174,27 @@ if ($interactive) {
 			}
 			print "\n";
 		} elsif ($in eq 'all pqf') {
-			for my $index (sort(keys %pqf2att)) {
+			for my $index (sort(keys %pqf_properties2att)) {
 	    		print "$index ";
 			}
 			print "\n";
 			
 		# Use input as key to look up values
-		} elsif ($zindex2marc{$in}) { 
+		} elsif ($zindex_clean2marc{$in}) { 
 			
 			print $OUT BOLD BLUE "zindex -> marc\n";
-			print $OUT "$in -> @{ $zindex2marc{$in} }\n";
+			print $OUT "$in -> @{ $zindex_clean2marc{$in} }\n";
 			print $OUT BOLD BLUE "zindex -> att\n";
-			print $OUT "$in -> @{ $zindex2att{$in} }\n";
+			if ($zindex2att{$in}) { 
+				my $att = "@{ $zindex2att{$in} }";
+				print $OUT "$in -> $att";
+				if ($att2pqf_properties{$att}) {
+					print $OUT "\n\tPQF: @{ $att2pqf_properties{$att} }";
+				} else {
+					print $OUT "\n\t-PQF";	
+				}
+				print $OUT "\n";
+			}
 			
 		} elsif ($marc2zindex{$in}) {
 			
@@ -196,7 +205,14 @@ if ($interactive) {
 			print $OUT BOLD BLUE "zindex -> att\n";
 			foreach my $zindex (@{ $marc2zindex_clean{$in} }) {
 				if ($zindex2att{$zindex}) { 
-					print $OUT "$zindex -> @{ $zindex2att{$zindex} }\n";
+					my $att = "@{ $zindex2att{$zindex} }";
+					print $OUT "$zindex -> $att";
+					if ($att2pqf_properties{$att}) {
+						print $OUT "\n\tPQF: @{ $att2pqf_properties{$att} }";
+					} else {
+						print $OUT "\n\t-PQF";	
+					}
+					print $OUT "\n";
 				}
 			}
 			
@@ -209,6 +225,19 @@ if ($interactive) {
 				print $OUT " -> @{ $zindex_clean2marc{$zindex} }";
 			}
 			print $OUT "\n";
+			
+		} elsif ($pqf_properties2att{$in}) {
+		
+			print $OUT BOLD BLUE "pqf -> att -> zindex_clean -> marc\n";
+			print $OUT "$in -> @{ $pqf_properties2att{$in} }";
+			my $att = "@{ $pqf_properties2att{$in} }";
+			print $OUT " -> @{ $att2zindex{$att} }";
+			my $zindex = "@{ $att2zindex{$att} }";
+			if ($zindex_clean2marc{$zindex}) { 
+				print $OUT " -> @{ $zindex_clean2marc{$zindex} }";
+			}
+			print $OUT "\n";
+			
 		}
 		
 		# $term->addhistory($_) if /\S/;
