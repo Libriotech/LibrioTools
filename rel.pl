@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/opt/local/bin/perl -w
 
 # rel.pl
 # Copyright 2009 Magnus Enger
@@ -22,6 +22,8 @@ use Pod::Usage;
 use MARC::File::USMARC;
 use String::Strip;
 use File::Slurp;
+use Term::ANSIColor qw(:constants);
+$Term::ANSIColor::AUTORESET = 1;
 use strict;
 
 use Data::Dumper;
@@ -35,13 +37,15 @@ open STDERR, ">&STDOUT" or die "cannot dup STDERR to STDOUT: $!\n";
 my ($dialect, $dev, $interactive, $debug) = get_options();
 
 # Default locations
-my $record_abs_path = '/etc/koha/zebradb/marc_defs/' . $dialect . '/biblios/record.abs';
-my $bib1_att_path   = '/etc/koha/zebradb/biblios/bib1.att';
+my $record_abs_path     = '/etc/koha/zebradb/marc_defs/' . $dialect . '/biblios/record.abs';
+my $bib1_att_path       = '/etc/koha/zebradb/biblios/bib1.att';
+my $pqf_properties_path = '/etc/koha/zebradb/pqf.properties';
 
 # dev install
 if ($dev) {
-  $record_abs_path = $dev . 'etc/zebradb/marc_defs/' . $dialect . '/biblios/record.abs';
-  $bib1_att_path   = $dev . 'etc/zebradb/biblios/etc/bib1.att';
+	$record_abs_path     = $dev . 'etc/zebradb/marc_defs/' . $dialect . '/biblios/record.abs';
+	$bib1_att_path       = $dev . 'etc/zebradb/biblios/etc/bib1.att';
+	$pqf_properties_path = $dev . 'etc/zebradb/pqf.properties';
 } 
 
 # Check presence of files
@@ -50,6 +54,9 @@ if (!-e $record_abs_path) {
 }
 if (!-e $bib1_att_path) {
   die "Can't find bib1.att at $bib1_att_path";
+}
+if (!-e $pqf_properties_path) {
+  die "Can't find pqf.properties at $pqf_properties_path";
 }
 
 # PARSE
@@ -100,6 +107,22 @@ foreach my $bib1_att_line (@bib1_att_file) {
 		push @{ $zindex2att{$zindex} }, $att;
 	}
 }
+
+# Process pqf.properties
+my %pqf2att;
+my %att2pqf;
+my @pqf_properties_file = read_file($pqf_properties_path);
+foreach my $pqf_properties_line (@pqf_properties_file) {
+	if (substr($pqf_properties_line, 0, 6) eq 'index.') {
+		StripLTSpace($pqf_properties_line);
+		$pqf_properties_line =~ m/^index.([a-zA-Z-\.]{3,}) {1,}= (.*)/ig;
+		my $pqf = $1;
+		my $att = $2;
+		push @{ $pqf2att{$pqf} }, $att;
+		push @{ $att2pqf{$att} }, $pqf;
+	}
+}
+
 # OUTPUT
 
 if ($interactive) {
@@ -115,7 +138,7 @@ if ($interactive) {
 			exit;
 		# Print out keys from the hashes
 		} elsif ($in eq 'all') {
-			print "use:\nall zindex\nall marc\nall att\n";
+			print "use:\nall zindex\nall marc\nall att\nall pqf\n";
 		} elsif ($in eq 'all zindex') {
 			for my $index (sort(keys %zindex2marc)) {
 	    		print "$index ";
@@ -131,23 +154,34 @@ if ($interactive) {
 	    		print "$index ";
 			}
 			print "\n";
+		} elsif ($in eq 'all pqf') {
+			for my $index (sort(keys %pqf2att)) {
+	    		print "$index ";
+			}
+			print "\n";
 		# Use input as key to look up values
 		} elsif ($zindex2marc{$in}) { 
+			print $OUT BOLD BLUE "zindex -> marc\n";
 			print $OUT "$in -> @{ $zindex2marc{$in} }\n";
-		} elsif ($marc2zindex{$in}) { 
+			print $OUT BOLD BLUE "zindex -> att\n";
+			print $OUT "$in -> @{ $zindex2att{$in} }\n";
+		} elsif ($marc2zindex{$in}) {
+			print $OUT BOLD BLUE "marc -> zindex\n";
 			print $OUT "$in -> @{ $marc2zindex{$in} }\n";
 			my $last_seen = '';
+			print $OUT BOLD BLUE "zindex -> att\n";
 			foreach my $zindex (@{ $marc2zindex{$in} }) {
 				$zindex =~ m/([a-zA-Z-]{2,})[:]{0,1}.*/;
 				$zindex = $1;
 				if ($zindex ne $last_seen) {
 					if ($zindex2att{$zindex}) { 
-						print $OUT "$in -> $zindex -> @{ $zindex2att{$zindex} }\n";
+						print $OUT "$zindex -> @{ $zindex2att{$zindex} }\n";
 					}
 				}
 				$last_seen = $zindex;
 			}
-		} elsif ($att2zindex{$in}) { 
+		} elsif ($att2zindex{$in}) {
+			print $OUT BOLD BLUE "att -> zindex -> marc\n";
 			print $OUT "$in -> @{ $att2zindex{$in} }";
 			my $zindex = "@{ $att2zindex{$in} }";
 			if ($zindex2marc{$zindex}) { 
