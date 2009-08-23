@@ -59,11 +59,13 @@ if (!-e $pqf_properties_path) {
   die "Can't find pqf.properties at $pqf_properties_path";
 }
 
-# PARSE
+# PARSE CONFIG FILES
 
 # Prcocess record.abs
 my %zindex2marc;
 my %marc2zindex;
+my %zindex_clean2marc;
+my %marc2zindex_clean;
 my @record_abs_file = read_file($record_abs_path);
 foreach my $record_abs_line (@record_abs_file) {
   if (substr($record_abs_line, 0, 4) eq 'melm') {
@@ -86,9 +88,20 @@ foreach my $record_abs_line (@record_abs_file) {
     }
     my $index_string = $2;
     my @indexes = split(/,/, $index_string);
+    my $last_seen_index = '';
     foreach my $index (@indexes) {
     	push @{ $zindex2marc{$index} }, $tag;
     	push @{ $marc2zindex{$tag} }, $index;
+    	my $index_clean = $index;
+		# Remove trailing :n from $index
+    	if ($index =~ m/:/) {
+    		$index_clean = substr($index, 0, -2);
+    	}
+    	if ($index_clean ne $last_seen_index) {
+    		push @{ $zindex_clean2marc{$index_clean} }, $tag;
+    		push @{ $marc2zindex_clean{$tag} }, $index_clean;
+    		$last_seen_index = $index_clean;
+    	}
     }
   }
 }
@@ -140,7 +153,13 @@ if ($interactive) {
 		} elsif ($in eq 'all') {
 			print "use:\nall zindex\nall marc\nall att\nall pqf\n";
 		} elsif ($in eq 'all zindex') {
+			print BOLD BLUE "zindex\n";
 			for my $index (sort(keys %zindex2marc)) {
+	    		print "$index ";
+			}
+			print "\n";
+			print BOLD BLUE "zindex_clean\n";
+			for my $index (sort(keys %zindex_clean2marc)) {
 	    		print "$index ";
 			}
 			print "\n";
@@ -159,42 +178,45 @@ if ($interactive) {
 	    		print "$index ";
 			}
 			print "\n";
+			
 		# Use input as key to look up values
 		} elsif ($zindex2marc{$in}) { 
+			
 			print $OUT BOLD BLUE "zindex -> marc\n";
 			print $OUT "$in -> @{ $zindex2marc{$in} }\n";
 			print $OUT BOLD BLUE "zindex -> att\n";
 			print $OUT "$in -> @{ $zindex2att{$in} }\n";
+			
 		} elsif ($marc2zindex{$in}) {
+			
 			print $OUT BOLD BLUE "marc -> zindex\n";
 			print $OUT "$in -> @{ $marc2zindex{$in} }\n";
-			my $last_seen = '';
+			print $OUT BOLD BLUE "marc -> zindex_clean\n";
+			print $OUT "$in -> @{ $marc2zindex_clean{$in} }\n";
 			print $OUT BOLD BLUE "zindex -> att\n";
-			foreach my $zindex (@{ $marc2zindex{$in} }) {
-				$zindex =~ m/([a-zA-Z-]{2,})[:]{0,1}.*/;
-				$zindex = $1;
-				if ($zindex ne $last_seen) {
-					if ($zindex2att{$zindex}) { 
-						print $OUT "$zindex -> @{ $zindex2att{$zindex} }\n";
-					}
+			foreach my $zindex (@{ $marc2zindex_clean{$in} }) {
+				if ($zindex2att{$zindex}) { 
+					print $OUT "$zindex -> @{ $zindex2att{$zindex} }\n";
 				}
-				$last_seen = $zindex;
 			}
+			
 		} elsif ($att2zindex{$in}) {
-			print $OUT BOLD BLUE "att -> zindex -> marc\n";
+			
+			print $OUT BOLD BLUE "att -> zindex_clean -> marc\n";
 			print $OUT "$in -> @{ $att2zindex{$in} }";
 			my $zindex = "@{ $att2zindex{$in} }";
-			if ($zindex2marc{$zindex}) { 
-				print $OUT " -> @{ $zindex2marc{$zindex} }";
+			if ($zindex_clean2marc{$zindex}) { 
+				print $OUT " -> @{ $zindex_clean2marc{$zindex} }";
 			}
 			print $OUT "\n";
 		}
-		$term->addhistory($_) if /\S/;
+		
+		# $term->addhistory($_) if /\S/;
 	}
 
 } elsif ($debug) {
 	
-	print Dumper %zindex2marc;
+	print Dumper %marc2zindex_clean;
 
 } else {
 	
