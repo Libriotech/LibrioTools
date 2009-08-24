@@ -38,7 +38,7 @@ my ($dialect, $dev, $debug) = get_options();
 
 # Default locations
 my $record_abs_path     = '/etc/koha/zebradb/marc_defs/' . $dialect . '/biblios/record.abs';
-my $bib1_att_path       = '/etc/koha/zebradb/biblios/bib1.att';
+my $bib1_att_path       = '/etc/koha/zebradb/biblios/etc/bib1.att';
 my $pqf_properties_path = '/etc/koha/zebradb/pqf.properties';
 
 # dev install
