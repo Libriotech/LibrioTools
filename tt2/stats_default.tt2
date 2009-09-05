@@ -1,0 +1,3 @@
+[% FOREACH stat IN stats %]
+[% stat.key %] [% allowed_fields.defined(stat.key) ? ' ' : '*' %] [% stat.value -%]
+[% END %]

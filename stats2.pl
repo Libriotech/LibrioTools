@@ -34,6 +34,15 @@ if (!-e $input_file) {
   exit;
 }
 
+# Configure the Template Toolkit
+my $config = {
+    INCLUDE_PATH => 'tt2',  # or list ref
+    INTERPOLATE  => 1,               # expand "$var" in plain text
+    POST_CHOMP   => 0,               # cleanup whitespace 
+};
+# create Template object
+my $tt2 = Template->new($config) || die Template->error(), "\n";
+
 my %allowed_fields = get_allowed_fields();
 
 # Variables for accumulating stats
@@ -149,15 +158,17 @@ if ($valueof) {
 	# OUTPUT STATS
   my @tags = keys %stats;
   @tags = sort(@tags);
-  foreach my $tag (@tags) {
-    print "$tag ";
-		if (!$allowed_fields{$tag}) {
-		  print "*";
-		} else {
-		  print " ";
-		}
-		print " $stats{$tag}\n";
-  }
+	# my $vars = ;
+	$tt2->process('stats_default.tt2', {'stats' => \%stats, 'allowed_fields' => \%allowed_fields}) || die $tt2->error();
+  # foreach my $tag (@tags) {
+  #   print "$tag ";
+	# 	if (!$allowed_fields{$tag}) {
+	# 	  print "*";
+	# 	} else {
+	#	  print " ";
+	# 	}
+	# 	print " $stats{$tag}\n";
+  # }
 	
 }
 
