@@ -46,7 +46,8 @@ my $tt2 = Template->new($config) || die Template->error(), "\n";
 my %allowed_fields = get_allowed_fields();
 
 # Variables for accumulating stats
-my %stats;
+my %fields;
+my %subfields;
 my %counts;
 my $record_count = 0;
 
@@ -109,19 +110,27 @@ while ( my $record = $marcfile->next() ) {
   		
     		# Count the occurence of fields
     		my $tag = $field->tag();
-    	  if ($stats{$tag}) {
-    	    $stats{$tag}++;
+    	  if ($fields{$tag}) {
+    	    $fields{$tag}++;
     	  } else {
-    		  $stats{$tag} = 1;
+    		  $fields{$tag} = 1;
+    		}
+
+    		# TODO Get the subfields
+    	  if (!$field->is_control_field()) {
+    		  my @subfields = $field->subfields();
+    		  foreach my $subfield (@subfields) {
+					  my ($code, $data) = @$subfield;
+					  if ($subfields{$tag}{$code}) {
+        	    $subfields{$tag}{$code}++;
+        	  } else {
+        		  $subfields{$tag}{$code} = 1;
+        		}
+					}
     		}
   		
   		}
   	  
-  		# TODO Get the subfields
-  	  # if (!$field->is_control_field()) {
-  		#   my @subfields = $field->subfields();
-  		#	  print Dumper(@subfields);
-  		# }
   	}
 		
 	}
@@ -155,20 +164,14 @@ if ($valueof) {
 		
 } elsif (!$getfield && !$missing) {
   
-	# OUTPUT STATS
-  my @tags = keys %stats;
-  @tags = sort(@tags);
-	# my $vars = ;
-	$tt2->process('stats_default.tt2', {'stats' => \%stats, 'allowed_fields' => \%allowed_fields}) || die $tt2->error();
-  # foreach my $tag (@tags) {
-  #   print "$tag ";
-	# 	if (!$allowed_fields{$tag}) {
-	# 	  print "*";
-	# 	} else {
-	#	  print " ";
-	# 	}
-	# 	print " $stats{$tag}\n";
-  # }
+	# OUTPUT GENERAL STATS
+	my $template = 'stats_default.tt2';
+	my $vars = {
+	  'fields' => \%fields, 
+		'subfields' => \%subfields, 
+	  'allowed_fields' => \%allowed_fields
+	};
+	$tt2->process($template, $vars) || die $tt2->error();
 	
 }
 

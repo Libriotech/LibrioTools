@@ -1,3 +1,5 @@
-[% FOREACH stat IN stats %]
-[% stat.key %] [% allowed_fields.defined(stat.key) ? ' ' : '*' %] [% stat.value -%]
-[% END %]
+[% FOREACH field IN subfields -%]
+[% FOREACH sub IN field.value %]
+[% field.key %][% sub.key %] [% allowed_fields.defined(field.key) ? ' ' : '*' %] [% sub.value -%]
+[% END -%]
+[% END -%]
