@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# marcstats.pl
+# stats.pl
 # Copyright 2009 Magnus Enger
 
 # This is free software; you can redistribute it and/or modify
@@ -20,72 +20,50 @@
 use MARC::File::USMARC;
 use Getopt::Long;
 use Data::Dumper;
+use Template;
+use Marc::Normarc;
+use Pod::Usage;
 use strict;
 
-# Allowed MARC fields in your local MARC dialect
-my %allowed_fields = get_allowed_fields();
-
-# Options
-my $file = '';
-my $dump = '';
-my $getfield = '';
-my $missing = '';
-my $valueof = '';
-my $verbose = '';
-GetOptions (
-  'i|input=s' => \$file, 
-  'dump'      => \$dump, 
-  'field=s'   => \$getfield, 
-  'missing=s' => \$missing,
-  'valueof=s' => \$valueof,  
-  'v|verbose' => \$verbose
-);
-
-# Usage
-if (!$file) {
-print "
-Produce stats about a file containing MARC-records.
-If you provide a field code with --field, only the record identifier and 
-title of records containing that field will be outout, as well as the 
-contents of the given field. This may be useful for debugging MARC records. 
-
-USAGE:
-./stats.pl -i records.mrc
-./stats.pl -i records.mrc --field 245
-
-Options: 
--i --input  = Input file
---dump = Just dump all the records in mnemonic form
---field = Print contents of given field + identfier of containing record 
---missing = Print records that do not have the given field e.g. 245
---valueof = Show values from this subfield, e.g. 600a
--v --verbose = Prettyprint found records 
-";
-exit;
-}
+# Get options
+my ($input_file, $dump, $getfield, $missing, $valueof, $verbose) = get_options();
 
 # Check that the file exists
-if (!-e $file) {
-  print "The file $file does not exist...\n";
+if (!-e $input_file) {
+  print "The file $input_file does not exist...\n";
   exit;
 }
 
+# Configure the Template Toolkit
+my $config = {
+    INCLUDE_PATH => 'tt2',  # or list ref
+    INTERPOLATE  => 1,               # expand "$var" in plain text
+    POST_CHOMP   => 0,               # cleanup whitespace 
+};
+# create Template object
+my $tt2 = Template->new($config) || die Template->error(), "\n";
+
+my %allowed_fields = get_allowed_fields();
+
 # Variables for accumulating stats
-my %stats;
+my %fields;
+my %subfields;
 my %counts;
 my $record_count = 0;
 
 # PROCESS FILE
 
-my $marcfile = MARC::File::USMARC->in($file);
+my $marcfile = MARC::File::USMARC->in($input_file);
 
 while ( my $record = $marcfile->next() ) {
-	
+
+	# Dump all the records in the file	
 	if ($dump) {
 		
 	  print $record->as_formatted(), "\n";
 	  print "----------------------------------------\n";
-	  
+	
+	# Print all the records that do not have the field given in missing
 	} elsif ($missing) {
 	
 	  if (!$record->field($missing)) {
@@ -93,6 +71,7 @@ while ( my $record = $marcfile->next() ) {
 			print "----------------------------------------\n";
 		}
 	
+	# Gather the values from the given field
 	} elsif ($valueof) {
 			
     my $valueoffield = substr $valueof, 0, 3;
@@ -114,7 +93,7 @@ while ( my $record = $marcfile->next() ) {
   	
   	  if ($getfield) { 
   		
-  		  # Output the given field
+  		  # Output the contents of the given field
   			if ($field->tag() eq $getfield) {
 				
 				  if ($verbose) {
@@ -131,24 +110,37 @@ while ( my $record = $marcfile->next() ) {
   		
     		# Count the occurence of fields
     		my $tag = $field->tag();
-    	  if ($stats{$tag}) {
-    	    $stats{$tag}++;
+    	  if ($fields{$tag}) {
+    	    $fields{$tag}++;
     	  } else {
-    		  $stats{$tag} = 1;
+    		  $fields{$tag} = 1;
+    		}
+
+    		# TODO Get the subfields
+    	  if (!$field->is_control_field()) {
+    		  my @subfields = $field->subfields();
+    		  foreach my $subfield (@subfields) {
+					  my ($code, $data) = @$subfield;
+					  if ($subfields{$tag}{$code}) {
+        	    $subfields{$tag}{$code}++;
+        	  } else {
+        		  $subfields{$tag}{$code} = 1;
+        		}
+					}
     		}
   		
   		}
   	  
-  		# Get the subfields
-  	  # if (!$field->is_control_field()) {
-  		#   my @subfields = $field->subfields();
-  		#	  print Dumper(@subfields);
-  		# }
   	}
 		
 	}
 	
 	$record_count++;
+	
+	# TODO Why is output from this delayed? 
+	# if ($verbose && ($record_count % 100 == 0)) {
+	#   print ".";
+	# }
 			
 }
 
@@ -172,216 +164,87 @@ if ($valueof) {
 		
 } elsif (!$getfield && !$missing) {
   
-	# OUTPUT STATS
-  my @tags = keys %stats;
-  @tags = sort(@tags);
-  foreach my $tag (@tags) {
-    print "$tag ";
-		if (!$allowed_fields{$tag}) {
-		  print "*";
-		} else {
-		  print " ";
-		}
-		print " $stats{$tag}\n";
-  }
+	# OUTPUT GENERAL STATS
+	my $template = 'stats_default.tt2';
+	my $vars = {
+	  'fields' => \%fields, 
+		'subfields' => \%subfields, 
+	  'allowed_fields' => \%allowed_fields
+	};
+	$tt2->process($template, $vars) || die $tt2->error();
 	
 }
 
-# Allowed fields according to NORMARC
-# TODO: Fill in all the subfields (not actually used at he moment, though)
-# TODO: Allow user to select MARC21 as an option? 
-sub get_allowed_fields {
+sub get_options {
 
-  return (
-	'000' => '-',
-	'001' => '-',
-	'007' => '-', 
-	'008' => '-', 
-	# 009 LOKALE KODER
-    # Feltet er reservert for lokal bruk i de enkelte systemer.
-    # http://www.nb.no/normarc/008-009.3.php#Lokale%20koder
-	'009' => '-', 
-	'010' => '-', 
-	'015' => '-', 
-	'019' => '-', 
-	'020' => '-', 
-	'022' => '-', 
-	'024' => '-', 
-	'025' => '-', 
-	'027' => '-',
-	'028' => '-',
-	'030' => '-', 
-	'033' => '-', 
-	'040' => '-', 
-	'041' => '-', 
-	'043' => '-', 
-	'044' => '-', 
-	'045' => '-', 
-	'060' => '-', 
-	'074' => '-', 
-	'080' => '-', 
-	'082' => '-', 
-	'084' => '-',
-	# 09X LOKALE FELT
-    # Alle felt 090 til 099 kan benyttes til lokal informasjon. 
-    # Det anbefales at feltene 090-096 benyttes til lokal klassifikasjon, oppstillingssignatur etc.
-    # http://www.nb.no/normarc/050-099.4.php#lokale%20felt
-    '090' => '-',
-    '091' => '-',
-    '092' => '-',
-    '093' => '-',
-    '094' => '-',
-    '095' => '-',
-    '096' => '-',
-    '097' => '-',
-    '098' => '-',
-    '099' => '-',
-  	'100' => 'abcdejqw8', 
-	'110' => '-', 
-  	'111' => '-', 
-  	'130' => '-', 
-  	'210' => '-', 
-  	'222' => '-', 
-  	'240' => '-', 
-  	'245' => 'abchnpw',
-  	'246' => '-', 
-  	'250' => '-', 
-  	'254' => '-', 
-  	'255' => '-', 
-  	'256' => '-', 
-  	'260' => '-', 
-  	'263' => '-', 
-  	'270' => '-', 
-  	'300' => '-', 
-  	'306' => '-', 
-  	'310' => '-', 
-  	'350' => '-', 
-  	'362' => '-', 
-  	'440' => '-', 
-  	'490' => '-', 
-  	'500' => '-', 
-  	'501' => '-', 
-  	'502' => '-', 
-  	'503' => '-', 
-  	'505' => '-', 
-  	'508' => '-', 
-  	'510' => '-', 
-  	'511' => '-', 
-  	'512' => '-', 
-  	'516' => '-', 
-  	'520' => '-', 
-  	'521' => '-', 
-  	'525' => '-', 
-  	'530' => '-', 
-  	'531' => '-', 
-  	'533' => '-', 
-  	'538' => '-', 
-  	'539' => '-', 
-  	'546' => '-', 
-  	'571' => '-', 
-  	'572' => '-', 
-  	'573' => '-', 
-  	'574' => '-',
-    # 59X LOKALE NOTER  (R)
-    # Det er satt av plass til 10 forskjellige lokale noter i feltene 590 til 599. 
-    # Disse feltene kan brukes fritt til lokal informasjon (f.eks. eksemplarinformasjon)
-    # http://www.nb.no/normarc/500-599.5.php#lokale%20noter
-    '590' => '-',
-  	'591' => '-',
-  	'592' => '-',
-  	'593' => '-',
-  	'594' => '-',
-  	'595' => '-',
-  	'596' => '-',
-  	'597' => '-',
-  	'598' => '-',
-  	'599' => '-',
-  	'600' => '-', 
-  	'610' => '-', 
-  	'611' => '-', 
-  	'630' => '-', 
-  	'640' => '-', 
-  	'650' => '-', 
-  	'651' => '-', 
-  	'652' => '-', 
-  	'653' => '-', 
-  	'655' => '-', 
-  	'656' => '-', 
-  	'658' => '-',
-	# 69X LOKALE EMNEINNFØRSLER (R)
-    # Feltene er reservert for lokal bruk i de enkelte biblioteksystemer.
-    # http://www.nb.no/normarc/600-699.5.php#lokale%20emneinnf%C3%B8rsler
-    '690' => '-',
-  	'691' => '-',
-  	'692' => '-',
-  	'693' => '-',
-  	'694' => '-',
-  	'695' => '-',
-  	'696' => '-',
-  	'697' => '-',
-  	'698' => '-',
-  	'699' => '-',
-  	'700' => '-', 
-  	'710' => '-', 
-  	'711' => '-', 
-  	'730' => '-', 
-  	'740' => '-', 
-  	'752' => '-', 
-  	'753' => '-', 
-  	'760' => '-', 
-  	'762' => '-', 
-  	'765' => '-', 
-  	'767' => '-', 
-  	'770' => '-', 
-  	'772' => '-', 
-  	'773' => '-', 
-  	'775' => '-', 
-  	'776' => '-', 
-  	'777' => '-', 
-  	'780' => '-', 
-  	'785' => '-', 
-  	'787' => '-',
-	# 79X LOKALE LENKER(R)
-	# Feltene er reservert for lokal bruk i de enkelte systemer. 
-  	# http://www.nb.no/normarc/760-79X.php#lokale%20lenker
-  	'790' => '-',
-  	'791' => '-',
-  	'792' => '-',
-  	'793' => '-',
-  	'794' => '-',
-  	'795' => '-',
-  	'796' => '-',
-  	'797' => '-',
-  	'798' => '-',
-  	'799' => '-',
-  	'800' => '-', 
-  	'810' => '-', 
-  	'811' => '-', 
-  	'830' => '-', 
-  	'850' => '-', 
-  	'856' => '-', 
-  	'900' => 'abcdgjqtuwxz08', 
-  	'910' => 'abcdgnqtuwxz0', 
-  	'911' => 'acdgnpqtuwxz0', 
-  	'930' => 'abdfgiklmnopqrswxz0', 
-  	'940' => 'agnpwxz0', 
-  	'950' => 'agqwx0',
-	# 99X LOKALE HENVISNINGER (R)
-	# Disse felt er reservert for lokal bruk i de enkelte systemer.
-	# http://www.nb.no/normarc/900-999.5.php#lokale%20henvisninger
-	'990' => '-',
-	'991' => '-',
-	'992' => '-',
-	'993' => '-',
-	'994' => '-',
-	'995' => '-',
-	'996' => '-',
-	'997' => '-',
-	'998' => '-',
-	# Koha specific:
-  	'942' => 'acehikmns026', 
-  	'952' => 'abcdefghjlmnopqrstuvwxyz0123456789', 
-  	'999' => 'abcd'
+  # Options
+  my $input_file = '';
+  my $dump = '';
+  my $getfield = '';
+  my $missing = '';
+  my $valueof = '';
+  my $verbose = '';
+	my $help = '';
+  
+	GetOptions (
+    'i|infile=s' => \$input_file, 
+    'dump'      => \$dump, 
+    'field=s'   => \$getfield, 
+    'missing=s' => \$missing,
+    'valueof=s' => \$valueof,  
+    'v|verbose' => \$verbose, 
+		'h|?|help'  => \$help
   );
 
+  pod2usage(-exitval => 0) if $help;
+  pod2usage( -msg => "\nMissing Argument: -i, --infile required\n", -exitval => 1) if !$input_file;
+
+  return ($input_file, $dump, $getfield, $missing, $valueof, $verbose);
+
 }
+
+__END__
+
+=head1 NAME
+    
+stats.pl - Produce stats about a file containing MARC-records.
+        
+=head1 SYNOPSIS
+            
+./stats.pl -i records.mrc --field 245
+               
+=head1 OPTIONS
+              
+=over 4
+                                                   
+=item B<-i, --infile>
+
+Name of the MARC file to be read.
+
+=item B<--dump>
+
+Just dump all the records in mnemonic form
+
+=item B<--field>
+
+Print contents of given field + identfier of containing record 
+
+=item B<--missing>
+
+Print records that do not have the given field e.g. 245
+
+=item B<--valueof>
+
+Show values from this subfield, e.g. 600a
+
+=item B<-v --verbose>
+
+Prettyprint found records 
+
+=item B<-h, -?, --help>
+                                               
+Prints this help message and exits.
+
+=back
+                                                               
+=cut
