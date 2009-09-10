@@ -1,0 +1,15 @@
+[% INCLUDE header.tt2 title="stats.pl - default" %]
+
+<table>
+[% FOREACH field IN subfields -%]
+[% FOREACH sub IN field.value %]
+<tr>
+<td>[% field.key %][% sub.key %]</td>
+<td>[% allowed_fields.defined(field.key) ? ' ' : '<span title="Not defined in current dialect" class="hihglight">*</span>' %]</td>
+<td>[% sub.value -%]</tr>
+</tr>
+[% END -%]
+[% END -%]
+</table>
+
+[% INCLUDE footer.tt2 %]

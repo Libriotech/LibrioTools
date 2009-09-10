@@ -1,0 +1,15 @@
+<html>
+<head>
+<title>[% title %]</title>
+<style>
+html {
+	font-family: sans-serif;	
+}
+.hihglight {
+	color: red;	
+}
+</style>
+</head>
+<body>
+<h1>[% title %]</h1>
+

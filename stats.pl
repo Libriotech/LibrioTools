@@ -26,12 +26,17 @@ use Pod::Usage;
 use strict;
 
 # Get options
-my ($input_file, $dump, $getfield, $missing, $valueof, $verbose) = get_options();
+my ($input_file, $dump, $getfield, $missing, $valueof, $html, $verbose) = get_options();
 
 # Check that the file exists
 if (!-e $input_file) {
   print "The file $input_file does not exist...\n";
   exit;
+}
+
+# Check that the directory in $html exists, if it is defined
+if ($html && !-e $html) {
+	die "Directory $html does not exist!";
 }
 
 # Configure the Template Toolkit
@@ -74,17 +79,17 @@ while ( my $record = $marcfile->next() ) {
 	# Gather the values from the given field
 	} elsif ($valueof) {
 			
-    my $valueoffield = substr $valueof, 0, 3;
-    my $valueofsubfield = substr $valueof, 3;
-    for my $field ( $record->field($valueoffield) ) {
-      my $value = $field->subfield($valueofsubfield);
-      # trailing whitespace / punctuation.
-      # $value =~ s/[.,]?\s*$//;
-      # Now count it.
-      if ($value) {
-        ++$counts{$value};
-      }
-    }
+	    my $field = substr $valueof, 0, 3;
+	    my $subfield = substr $valueof, 3;
+	    for my $field ( $record->field($field) ) {
+	      my $value = $field->subfield($subfield);
+	      # trailing whitespace / punctuation.
+	      # $value =~ s/[.,]?\s*$//;
+	      # Now count it.
+	      if ($value) {
+	        ++$counts{$value};
+	      }
+	    }
 			
   } else {
 	
@@ -151,27 +156,32 @@ if ($valueof) {
   
 	my $sum = 0;
 	# Sort the list of headings based on the count of each.
-  my @values = reverse sort { $counts{$a} <=> $counts{$b} } keys %counts;
-  # Take the top N hits...
-  # @headings = @headings[0..MAX-1];
-  # And print out the results.
-  for my $value ( @values ) {
-    printf( "%5d %s\n", $counts{$value}, $value );
+	my @values = reverse sort { $counts{$a} <=> $counts{$b} } keys %counts;
+	# Take the top N hits...
+	# @headings = @headings[0..MAX-1];
+	# And print out the results.
+	for my $value ( @values ) {
+		printf( "%5d %s\n", $counts{$value}, $value );
 		$sum += $counts{$value};
-  }
+	}
 	print "Sum: $sum\n";
 	print "Number of records: $record_count\n";
 		
 } elsif (!$getfield && !$missing) {
   
 	# OUTPUT GENERAL STATS
-	my $template = 'stats_default.tt2';
+	my $template = $html ? 'stats_default_html.tt2' : 'stats_default.tt2';
 	my $vars = {
-	  'fields' => \%fields, 
+		'fields' => \%fields, 
 		'subfields' => \%subfields, 
-	  'allowed_fields' => \%allowed_fields
+		'allowed_fields' => \%allowed_fields
 	};
-	$tt2->process($template, $vars) || die $tt2->error();
+	if ($html) {
+		$tt2->process($template, $vars, "$html/stats_default.html") || die $tt2->error();
+		print "Go have a look at $html/stats_default.html. \n";
+	} else { 
+		$tt2->process($template, $vars) || die $tt2->error();
+	}
 	
 }
 
@@ -183,8 +193,9 @@ sub get_options {
   my $getfield = '';
   my $missing = '';
   my $valueof = '';
+  my $html = '', 
   my $verbose = '';
-	my $help = '';
+  my $help = '';
   
 	GetOptions (
     'i|infile=s' => \$input_file, 
@@ -192,14 +203,15 @@ sub get_options {
     'field=s'   => \$getfield, 
     'missing=s' => \$missing,
     'valueof=s' => \$valueof,  
+    'html=s'    => \$html, 
     'v|verbose' => \$verbose, 
-		'h|?|help'  => \$help
+	'h|?|help'  => \$help
   );
 
   pod2usage(-exitval => 0) if $help;
   pod2usage( -msg => "\nMissing Argument: -i, --infile required\n", -exitval => 1) if !$input_file;
 
-  return ($input_file, $dump, $getfield, $missing, $valueof, $verbose);
+  return ($input_file, $dump, $getfield, $missing, $valueof, $html, $verbose);
 
 }
 
@@ -236,6 +248,10 @@ Print records that do not have the given field e.g. 245
 =item B<--valueof>
 
 Show values from this subfield, e.g. 600a
+
+=item B<--html>
+
+Write output as HTML to the directory given as argument, e.g. --html /tmp/html
 
 =item B<-v --verbose>
 

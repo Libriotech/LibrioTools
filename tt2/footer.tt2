@@ -1,0 +1,6 @@
+[% USE date %]
+
+<hr />
+<p>Produced by <a href="http://github.com/MagnusEnger/LibrioTools/">LibrioTools</a> on [% date.format %].</p>
+</body>
+</html>
