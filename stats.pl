@@ -52,6 +52,7 @@ my %allowed_fields = get_allowed_fields();
 
 # Variables for accumulating stats
 my %fields;
+my %values;
 my %subfields;
 my %counts;
 my $record_count = 0;
@@ -76,15 +77,13 @@ while ( my $record = $marcfile->next() ) {
 			print "----------------------------------------\n";
 		}
 	
-	# Gather the values from the given field
+	# Gather values from fields
 	} elsif ($valueof) {
 			
 	    my $field = substr $valueof, 0, 3;
 	    my $subfield = substr $valueof, 3;
 	    for my $field ( $record->field($field) ) {
 	      my $value = $field->subfield($subfield);
-	      # trailing whitespace / punctuation.
-	      # $value =~ s/[.,]?\s*$//;
 	      # Now count it.
 	      if ($value) {
 	        ++$counts{$value};
@@ -157,21 +156,41 @@ if ($valueof) {
 	my $sum = 0;
 	# Sort the list of headings based on the count of each.
 	my @values = reverse sort { $counts{$a} <=> $counts{$b} } keys %counts;
-	# Take the top N hits...
+	# Take the top MAX hits...
 	# @headings = @headings[0..MAX-1];
 	# And print out the results.
 	for my $value ( @values ) {
 		printf( "%5d %s\n", $counts{$value}, $value );
 		$sum += $counts{$value};
 	}
-	print "Sum: $sum\n";
-	print "Number of records: $record_count\n";
+	
+	my $template = $html ? 'stats_valueof_html.tt2' : 'stats_valueof.tt2';
+	my $vars = {
+		'counts'  => \%counts, 
+		'records' => \$record_count
+	};
+	if ($html) {
+		$tt2->process($template, $vars, "$html/stats_default.html") || die $tt2->error();
+		print "Go have a look at $html/stats_default.html. \n";
+	} else { 
+		$tt2->process($template, $vars) || die $tt2->error();
+	}	
 		
 } elsif (!$getfield && !$missing) {
   
+	&default(0);
+	
+}
+
+sub default {
+	
 	# OUTPUT GENERAL STATS
+	
+	my $links = shift;
+	
 	my $template = $html ? 'stats_default_html.tt2' : 'stats_default.tt2';
 	my $vars = {
+		'links'  => \$links, 
 		'fields' => \%fields, 
 		'subfields' => \%subfields, 
 		'allowed_fields' => \%allowed_fields
@@ -181,7 +200,7 @@ if ($valueof) {
 		print "Go have a look at $html/stats_default.html. \n";
 	} else { 
 		$tt2->process($template, $vars) || die $tt2->error();
-	}
+	}	
 	
 }
 
