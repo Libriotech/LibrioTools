@@ -1,4 +1,4 @@
-[% INCLUDE header.tt2 title="stats.pl - value of $valueof" %]
+[% INCLUDE header.tt2 title="Value of $valueof" %]
 
 <table>
 [% FOREACH key IN counts.nsort.reverse %]

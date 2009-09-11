@@ -1,4 +1,4 @@
-[% INCLUDE header.tt2 title="stats.pl - default" %]
+[% INCLUDE header.tt2 title="Frequency of fields (stats.pl default)" %]
 
 <table>
 [% FOREACH field IN subfields -%]
