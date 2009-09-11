@@ -55,7 +55,7 @@ my %fields;
 my %values;
 my %subfields;
 my %counts;
-my $record_count = 0;
+my $record_count = 1;
 
 # PROCESS FILE
 
@@ -120,7 +120,6 @@ while ( my $record = $marcfile->next() ) {
     		  $fields{$tag} = 1;
     		}
 
-    		# TODO Get the subfields
     	  if (!$field->is_control_field()) {
     		  my @subfields = $field->subfields();
     		  foreach my $subfield (@subfields) {
@@ -159,30 +158,31 @@ if ($valueof) {
 	# Take the top MAX hits...
 	# @headings = @headings[0..MAX-1];
 	# And print out the results.
-	for my $value ( @values ) {
-		printf( "%5d %s\n", $counts{$value}, $value );
-		$sum += $counts{$value};
-	}
+	# for my $value ( @values ) {
+	# 	printf( "%5d %s\n", $counts{$value}, $value );
+	# 	$sum += $counts{$value};
+	# }
 	
 	my $template = $html ? 'stats_valueof_html.tt2' : 'stats_valueof.tt2';
 	my $vars = {
 		'counts'  => \%counts, 
-		'records' => \$record_count
+		'valueof' => $valueof
 	};
 	if ($html) {
-		$tt2->process($template, $vars, "$html/stats_default.html") || die $tt2->error();
-		print "Go have a look at $html/stats_default.html. \n";
+	  my $htmlfile = "$html/stats_valueof_$valueof.html";
+		$tt2->process($template, $vars, $htmlfile) || die $tt2->error();
+		print "Go have a look at $htmlfile. \n";
 	} else { 
 		$tt2->process($template, $vars) || die $tt2->error();
 	}	
 		
 } elsif (!$getfield && !$missing) {
   
-	&default(0);
+	&default_output(0);
 	
 }
 
-sub default {
+sub default_output {
 	
 	# OUTPUT GENERAL STATS
 	
