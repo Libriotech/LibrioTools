@@ -26,7 +26,7 @@ use Pod::Usage;
 use strict;
 
 # Get options
-my ($input_file, $dump, $getfield, $missing, $valueof, $html, $verbose) = get_options();
+my ($input_file, $dump, $missing, $valueof, $html, $verbose) = get_options();
 
 # Check that the file exists
 if (!-e $input_file) {
@@ -95,43 +95,24 @@ while ( my $record = $marcfile->next() ) {
   	my @fields = $record->fields();
   	foreach my $field (@fields) {
   	
-  	  if ($getfield) { 
-  		
-  		  # Output the contents of the given field
-  			if ($field->tag() eq $getfield) {
-				
-				  if ($verbose) {
-					  print $record->as_formatted(), "\n";
-      			print "----------------------------------------\n";
-					} else {
-  			    print "\n001: ", $record->field('001')->data(), "\n";
-  			    print "245: ", $record->title(), "\n";
-  			    print "$getfield: ", $field->as_string, "\n";
-  			  }
-				}
-  		
-			} else {
-  		
-    		# Count the occurence of fields
-    		my $tag = $field->tag();
-    	  if ($fields{$tag}) {
-    	    $fields{$tag}++;
-    	  } else {
-    		  $fields{$tag} = 1;
-    		}
+  		# Count the occurence of fields
+  		my $tag = $field->tag();
+  	  if ($fields{$tag}) {
+  	    $fields{$tag}++;
+  	  } else {
+  		  $fields{$tag} = 1;
+  		}
 
-    	  if (!$field->is_control_field()) {
-    		  my @subfields = $field->subfields();
-    		  foreach my $subfield (@subfields) {
-					  my ($code, $data) = @$subfield;
-					  if ($subfields{$tag}{$code}) {
-        	    $subfields{$tag}{$code}++;
-        	  } else {
-        		  $subfields{$tag}{$code} = 1;
-        		}
-					}
-    		}
-  		
+  	  if (!$field->is_control_field()) {
+  		  my @subfields = $field->subfields();
+  		  foreach my $subfield (@subfields) {
+			  my ($code, $data) = @$subfield;
+			  if ($subfields{$tag}{$code}) {
+      	    $subfields{$tag}{$code}++;
+      	  } else {
+      		  $subfields{$tag}{$code} = 1;
+      		}
+			}
   		}
   	  
   	}
@@ -176,7 +157,7 @@ if ($valueof) {
 		$tt2->process($template, $vars) || die $tt2->error();
 	}	
 		
-} elsif (!$getfield && !$missing) {
+} elsif (!$missing) {
   
 	&default_output(0);
 	
@@ -209,7 +190,6 @@ sub get_options {
   # Options
   my $input_file = '';
   my $dump = '';
-  my $getfield = '';
   my $missing = '';
   my $valueof = '';
   my $html = '', 
@@ -219,7 +199,6 @@ sub get_options {
 	GetOptions (
     'i|infile=s' => \$input_file, 
     'dump'      => \$dump, 
-    'field=s'   => \$getfield, 
     'missing=s' => \$missing,
     'valueof=s' => \$valueof,  
     'html=s'    => \$html, 
@@ -230,7 +209,7 @@ sub get_options {
   pod2usage(-exitval => 0) if $help;
   pod2usage( -msg => "\nMissing Argument: -i, --infile required\n", -exitval => 1) if !$input_file;
 
-  return ($input_file, $dump, $getfield, $missing, $valueof, $html, $verbose);
+  return ($input_file, $dump, $missing, $valueof, $html, $verbose);
 
 }
 
@@ -255,10 +234,6 @@ Name of the MARC file to be read.
 =item B<--dump>
 
 Just dump all the records in mnemonic form
-
-=item B<--field>
-
-Print contents of given field + identfier of containing record 
 
 =item B<--missing>
 
