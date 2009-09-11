@@ -136,13 +136,9 @@ if ($valueof) {
 	my $sum = 0;
 	# Sort the list of headings based on the count of each.
 	my @values = reverse sort { $counts{$a} <=> $counts{$b} } keys %counts;
-	# Take the top MAX hits...
+	
+	# TODO Take the top MAX hits...
 	# @headings = @headings[0..MAX-1];
-	# And print out the results.
-	# for my $value ( @values ) {
-	# 	printf( "%5d %s\n", $counts{$value}, $value );
-	# 	$sum += $counts{$value};
-	# }
 	
 	my $template = $html ? 'stats_valueof_html.tt2' : 'stats_valueof.tt2';
 	my $vars = {
@@ -245,7 +241,7 @@ Show values from this subfield, e.g. 600a
 
 =item B<--html>
 
-Write output as HTML to the directory given as argument, e.g. --html /tmp/html
+Write output as HTML to the directory given as argument, e.g. --html /tmp/html. Currently implemented for --valueof and the default behaviour. 
 
 =item B<-v --verbose>
 
