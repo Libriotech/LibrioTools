@@ -56,6 +56,11 @@ my %values;
 my %subfields;
 my %counts;
 my $record_count = 1;
+my $multiple_fields = 0;
+if ($valueof && $valueof !~ m/[0-9]{3}[a-z0-9]{1}/) {
+  $multiple_fields = 1;
+	print "Checking multiple fields\n";
+}
 
 # PROCESS FILE
 
@@ -77,8 +82,8 @@ while ( my $record = $marcfile->next() ) {
 			print "----------------------------------------\n";
 		}
 	
-	# Gather values from fields
-	} elsif ($valueof) {
+	# Gather values from one field 
+	} elsif ($valueof && !$multiple_fields) {
 			
 	    my $field = substr $valueof, 0, 3;
 	    my $subfield = substr $valueof, 3;
@@ -89,10 +94,23 @@ while ( my $record = $marcfile->next() ) {
 	        ++$counts{$value};
 	      }
 	    }
-			
+	
   } else {
 	
-  	my @fields = $record->fields();
+		my @fields;
+	  if ($valueof) {
+			 if ($valueof eq 'all') {
+  	   		@fields = $record->fields();
+			 # Catch --valueof 245, 24. and 2..
+			 } elsif ($valueof =~ m/[0-9]{1,2}[\.]{1,2}/ || $valueof =~ m/[0-9]{3}/) {
+			 	  @fields = $record->field($valueof);
+			 } else {
+			 	  die "Que?\n";
+			 }
+		} else {
+		  @fields = $record->fields();
+		}
+		
   	foreach my $field (@fields) {
   	
   		# Count the occurence of fields
@@ -103,6 +121,7 @@ while ( my $record = $marcfile->next() ) {
   		  $fields{$tag} = 1;
   		}
 
+			# Count the occurence of subfields
   	  if (!$field->is_control_field()) {
   		  my @subfields = $field->subfields();
   		  foreach my $subfield (@subfields) {
@@ -131,9 +150,18 @@ while ( my $record = $marcfile->next() ) {
 $marcfile->close();
 undef $marcfile;
 
-if ($valueof) {
+if ($valueof && !$multiple_fields) {
   
-	my $sum = 0;
+	&valueof_output();	
+		
+} elsif (!$missing) {
+  
+	&default_output(0);
+	
+}
+
+sub valueof_output {
+
 	# Sort the list of headings based on the count of each.
 	my @values = reverse sort { $counts{$a} <=> $counts{$b} } keys %counts;
 	
@@ -151,12 +179,8 @@ if ($valueof) {
 		print "Go have a look at $htmlfile. \n";
 	} else { 
 		$tt2->process($template, $vars) || die $tt2->error();
-	}	
-		
-} elsif (!$missing) {
-  
-	&default_output(0);
-	
+	}
+
 }
 
 sub default_output {
