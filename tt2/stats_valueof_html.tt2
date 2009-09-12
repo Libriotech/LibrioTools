@@ -1,6 +1,7 @@
 [% INCLUDE header.tt2 title="Value of $valueof" %]
 
 <table>
+<tr><th>Count</th><th>Value</th></tr>
 [% FOREACH key IN counts.nsort.reverse %]
 <tr>
 <td>[% counts.$key %]</td>
