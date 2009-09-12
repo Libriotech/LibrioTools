@@ -59,7 +59,6 @@ my $record_count = 1;
 my $multiple_fields = 0;
 if ($valueof && $valueof !~ m/[0-9]{3}[a-z0-9]{1}/) {
   $multiple_fields = 1;
-	print "Checking multiple fields\n";
 }
 
 # PROCESS FILE
@@ -147,12 +146,33 @@ while ( my $record = $marcfile->next() ) {
 			
 }
 
-$marcfile->close();
-undef $marcfile;
-
 if ($valueof && !$multiple_fields) {
   
 	&valueof_output();	
+	
+} elsif ($valueof && $multiple_fields) {
+	
+	print "Multiple fields\n";
+	while ( my ($field, $sfields) = each(%subfields) ) {
+        while ( my ($subfield, $count) = each(%{$sfields}) ) {
+        	# print "$field$subfield\n";
+       		# Empty the variable that holds the counts
+       		%counts = ();
+       		# Is this necessary? Isn't there some way to "rewind" the file? 
+       		my $marcfile = MARC::File::USMARC->in($input_file);
+        	while ( my $record = $marcfile->next() ) {
+        		for my $this_field ( $record->field($field) ) {
+				      my $value = $this_field->subfield($subfield);
+				      # Now count it.
+				      if ($value) {
+				        ++$counts{$value};
+				      }
+	    		}
+        	}
+        	# Output the results
+        	&valueof_output("$field$subfield");
+    	}
+    }
 		
 } elsif (!$missing) {
   
@@ -160,7 +180,17 @@ if ($valueof && !$multiple_fields) {
 	
 }
 
+$marcfile->close();
+undef $marcfile;
+
+### SUBROUTINES ###
+
 sub valueof_output {
+	
+	my $arg = shift;
+	if (!$arg) {
+		$arg = $valueof;
+	}
 
 	# Sort the list of headings based on the count of each.
 	my @values = reverse sort { $counts{$a} <=> $counts{$b} } keys %counts;
@@ -171,10 +201,10 @@ sub valueof_output {
 	my $template = $html ? 'stats_valueof_html.tt2' : 'stats_valueof.tt2';
 	my $vars = {
 		'counts'  => \%counts, 
-		'valueof' => $valueof
+		'valueof' => $arg
 	};
 	if ($html) {
-	  my $htmlfile = "$html/stats_valueof_$valueof.html";
+	  my $htmlfile = "$html/stats_valueof_$arg.html";
 		$tt2->process($template, $vars, $htmlfile) || die $tt2->error();
 		print "Go have a look at $htmlfile. \n";
 	} else { 

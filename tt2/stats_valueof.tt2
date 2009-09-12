@@ -1,3 +1,4 @@
+*** [% valueof %] ***
 [% FOREACH key IN counts.nsort.reverse %]
 [%- counts.$key %] [% key %] 
 [% END -%] 
