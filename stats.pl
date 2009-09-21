@@ -176,7 +176,7 @@ if ($valueof && !$multiple_fields) {
 		
 } elsif (!$missing) {
   
-	&default_output(0);
+	&default_output(1);
 	
 }
 
@@ -221,7 +221,7 @@ sub default_output {
 	
 	my $template = $html ? 'stats_default_html.tt2' : 'stats_default.tt2';
 	my $vars = {
-		'links'  => \$links, 
+		'links'  => $links, 
 		'fields' => \%fields, 
 		'subfields' => \%subfields, 
 		'allowed_fields' => \%allowed_fields

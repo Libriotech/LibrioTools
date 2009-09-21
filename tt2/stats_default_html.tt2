@@ -5,7 +5,7 @@
 [% FOREACH sub IN field.value %]
 <tr>
 [% IF links == 1 %]
-<td><a href="[% field.key %][% sub.key %].html">[% field.key %]\$[% sub.key %]</a></td>
+<td><a href="stats_valueof_[% field.key %][% sub.key %].html">[% field.key %]\$[% sub.key %]</a></td>
 [% ELSE %]
 <td>[% field.key %]\$[% sub.key %]</td>
 [% END %]
