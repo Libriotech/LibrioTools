@@ -379,49 +379,6 @@ while (my $record = $batch->next()) {
 	  last;
 	} 
 	
-#  print "Using rules for MPL.\n" if $debug;
-#  copy_field( $record, '092', 'a', '952', 'c' ) or die("Couldn't copy 092a to 952c");
-#  copy_field( $record, '092', 'a', '952', 'k' ) or die("Couldn't copy 092a to 952k");
-#  copy_field( $record, '092', 'a', '942', 'j' ) or die("Couldn't copy 092a to 942j");
-#  copy_field( $record, '092', 'a', '942', 'k' ) or die("Couldn't copy 092a to 942k");
-#  copy_field( $record, '092', 'a', '952', 'l' ) or die("Couldn't copy 092a to 952l");
-#  
-#  if ( ! field_exists( $record, '020', 'c' ) ) {
-#    print "020c is empty, creating it with value of 0.\n" if $debug;
-#    update_field( $record, '020', 'c', '0' ) or die("Couldn't update 020c.");
-#  } else {
-#    my $field_020c = read_field( $record, '020', 'c' );
-#    print "020c was $field_020c\n" if $debug;
-#    $field_020c =~ s/\$//; ## Removes the '$' from the field, shouldn't be there.
-#    update_field( $record, '020', 'c', $field_020c ) or die("Couldn't update 020c");
-#    print "020c is now $field_020c\n" if $debug;
-#  }
-#  copy_field( $record, '020', 'c', '952', '9' ) or die("Couldn't copy 020c to 952 9");
-#  copy_field( $record, '020', 'c', '952', 'r' ) or die("Couldn't copy 020c to 952r");
-#  
-#  update_field( $record, '952', 'b', $branchcode ) or die("Couldn't update 952b to $branchcode");
-#  update_field( $record, '952', 'd', $branchcode ) or die("Couldn't update 952d to $branchcode");
-#  
-#  #barcode
-#  copy_field( $record, '901', 'a', '952', 'p' ) or die("Couldn't copy 901a to 952p");
-#  print "Barcode: " . read_field($record , '901', 'a') . "\n";    
-#  
-#  ## Put today's date into 952v, 952w in format yyyy-mm-dd
-#  my $date = getToday();
-#  print "Today's date in formt yyyy-mm-dd: ", $date, "\n" if $debug;
-#  
-#  update_field( $record, '952', 'v', $date ) or die("Couldn't update 952v to $date");
-#  update_field( $record, '952', 'w', $date ) or die("Couldn't update 952w to $date");
-#  
-#  ## Get the item type by the syntax of the call number, put item type in 942c & 942d
-#  my $field_092a = read_field( $record, '092', 'a' );
-#  my $itemtype = get_item_type( $branchcode, $field_092a );
-#  print "Branch code: ", $branchcode, "\n" if $debug;
-#  print "Call number: ", $field_092a, "\nItem type: ", $itemtype, "\n" if $debug;
-#  
-#  update_field( $record, '942', 'c', $itemtype ) or die("Couldn't update 942c to $itemtype");
-#  update_field( $record, '942', 'd', $itemtype ) or die("Couldn't update 942d to $itemtype");
-	
 }
 print "\nEnd of records\n" if $debug;
 
