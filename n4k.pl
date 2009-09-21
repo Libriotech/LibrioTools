@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# normarc4koha.pl
+# n4k.pl
 # Copyright 2009 Magnus Enger
 
 ## Based on: 
@@ -61,7 +61,7 @@ my %item_types = (
 
 ## get command line options
 my ($input_file, $system, $limit, $debug, $xml) = get_options();
-print "\nStarting normarc4koha\n" if $debug;
+print "\nStarting n4k\n" if $debug;
 print "Input File: $input_file\n" if $debug;
 print "Converting from: $system\n" if $debug;
 print "Stopping after $limit records\n" if $debug && $limit;
@@ -449,11 +449,11 @@ __END__
 
 =head1 NAME
     
-normarc4koha.pl - Processes MARC from Norwegian ILSs for import into Koha.
+n4k.pl - Processes MARC from Norwegian ILSs for import into Koha.
         
 =head1 SYNOPSIS
             
-normarc4koha.pl -i inputfile -s system [-d] [-l] [-x] [-h] > outputfile
+n4k.pl -i inputfile -s system [-d] [-l] [-x] [-h] > outputfile
                
 =head1 OPTIONS
               
@@ -478,7 +478,7 @@ Stop processing after n records.
 =item B<-x, --xml>
 
 Output records as MARCXML. Give filename as argument e.g.: 
-normarc4koha.pl -i inputfile -s system -x out.xml [-d] [-l] [-h]
+N'djamena4k.pl -i inputfile -s system -x out.xml [-d] [-l] [-h]
 
 =item B<-h, -?, --help>
                                                
