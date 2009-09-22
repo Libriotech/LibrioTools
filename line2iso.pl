@@ -116,7 +116,6 @@ foreach my $line (@lines) {
   }
   
   my $field = substr $line, 1, 3;
-  # print "$field\n";
   
   if ($field ne "000" && $field ne "001" && $field ne "007" && $field ne "008") {
   	
@@ -136,23 +135,20 @@ foreach my $line (@lines) {
     
     foreach my $subfield (@subfields) {
       
-      # print "$subfield\n";
+      # Skip short subfields     
+      if (length($subfield) < 1) {
+	  	next;
+      }
       
       my $index = substr $subfield, 0, 1;
       my $value = substr $subfield, 1;
-      
-      # print "$index = $value\n";
       
       if ($subfield_count == 0) {
         $newfield = MARC::Field->new($field, $ind1, $ind2, $index => $value);
       } else {
         $newfield->add_subfields($index, $value);
       }
-      
-      # if ($field eq "099" && $index eq "a") {
-      # 	print "$value ";
-      # }
-      
+          
       $subfield_count++;
       
     }
