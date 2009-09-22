@@ -3,7 +3,7 @@
 # n4k.pl
 # Copyright 2009 Magnus Enger
 
-## Based on: 
+## Loosely based on: 
 ## updateMarcForKoha.pl
 ## Copyright 2006 Kyle Hall
 ## See: http://koha-tools.svn.sourceforge.net/viewvc/koha-tools/marc-tools/trunk/
@@ -27,7 +27,6 @@ use Pod::Usage;
 use MARC::File::USMARC;
 use MARC::File::XML;
 use String::Strip;
-# use SimpleMARC;
 use Encode;
 
 use strict;
@@ -35,36 +34,18 @@ use strict;
 ## Redirect STDERR to STDOUT
 open STDERR, ">&STDOUT" or die "cannot dup STDERR to STDOUT: $!\n";
 
-# Define mapping from item types in source to codes for Koha item types
-# To be used in 942c and 952y
-# We will lc before comparing, so use lowercase in the keys
-my %item_types = (
-  'dvd'        => 'DVD', 
-  'tidsskrift' => 'TIDS', 
-  'bok'        => 'BOK', 
-  'rapport'    => 'BOK',
-  'hefte'      => 'BOK',
-  'småtrykk'   => 'BOK',
-  'tegneserie' => 'BOK',
-  'eng'        => 'BOK',
-  'kombidokument' => 'BOK',
-  'e-bok'      => 'EBOK', 
-  'lydopptak'  => 'LBOK', 
-  'vhs'        => 'VID', 
-  'videogram'  => 'VID', 
-  'video'      => 'VID', 
-  'elektronisk ressurs'  => 'DIG',
-  'dvd-rom'    => 'DIG',
-  'cd-rom'     => 'DIG', 
-  'maskinlesbar fil'  => 'DIG'
-);
-
 ## get command line options
-my ($input_file, $system, $limit, $debug, $xml) = get_options();
-print "\nStarting n4k\n" if $debug;
-print "Input File: $input_file\n" if $debug;
-print "Converting from: $system\n" if $debug;
-print "Stopping after $limit records\n" if $debug && $limit;
+my ($input_file, $client, $limit, $debug, $xml) = get_options();
+print "\nStarting n4k.pl\n"              if $debug;
+print "Input File: $input_file\n"        if $debug;
+print "Converting records for $client\n" if $debug;
+print "Stopping after $limit records\n"  if $debug && $limit;
+
+require "Client/" . $client . ".pm";
+
+if (!-e $input_file) {
+	die "Couldn't find input file $input_file\n";
+}
 
 my $batch = MARC::File::USMARC->in($input_file);
 my $count = 0;
@@ -77,282 +58,21 @@ if ($xml && !$debug) {
 print "Starting records iteration\n" if $debug;
 ## iterate through our marc files and do stuff
 while (my $record = $batch->next()) {
-  ## print the title contained in the record
-  print "\n########################################\n" if $debug;
-  print $record->title(), "\n" if $debug;
-  print $record->as_formatted(), "\n" if $debug;
+  
+	# print the record before it is transformed
+	print "\n########################################\n" if $debug;
+	print $record->title(), "\n" if $debug;
+	print $record->as_formatted(), "\n" if $debug;
 
-	if ($system eq 'bibliofil') {
-	
-      copy_field( $record, '850', 'a', '952', 'a' ) or die("Couldn't copy 850a to 952a");
+	# TRANSFORM
 
-	} elsif ($system eq 'tidemann') {
-	  
-		# 1. BUILD KOHA-SPECIFIC FIELDS
-		
-		# TODO 942
-		
-		my $field942 = MARC::Field->new(942, '', '', 'a' => 'sksk');
-		if (my $field096 = $record->field('096')) {
-  		  $field942->add_subfields('o' => $field096->subfield('a'));
-  		}
-  		
-  		# a	Institution code [OBSOLETE]
-  		# c	Koha [default] item type
-  		if (my $field245h = lc($record->subfield('245', 'h'))) {
-  		  StripLTSpace($field245h);
-		  if ($item_types{$field245h}) {
-		    $field942->add_subfields('c' => $item_types{$field245h});
-		  } else {
-            $field942->add_subfields('c' => 'X');	
-          }
-  		}
-  		# e	Edition
-  		# h	Classification part
-  		# i	Item part
-  		
-  		# k	Call number prefix
-  		# m	Call number suffix
-  		if ($record->field('096') && $record->field('096')->subfield('a')) {
-  		  my $field096a = $record->field('096')->subfield('a');
-  		  if ($field096a =~ m/ /) {
-  		    my ($pre, $suf) = split / /, $field096a;
-  		    $field942->add_subfields('k' => $pre);
-  		    $field942->add_subfields('m' => $suf); 
-  		  }
-  		}
-  		
-  		# n	Suppress in OPAC
-  		# s	Serial record flag
-  		# 0	Koha issues (borrowed), all copies
-  		
-  		# 2	Source of classification or shelving scheme
-  		# Values are in class_sources.cn_source
-  		# See also 952$2
-  		# If 096a starts with three digits we count this as dcc-based scheme
-  		if ($record->field('096') && $record->field('096')->subfield('a')) {
-  		  my $field096a = $record->field('096')->subfield('a');
-  		  if ($field096a =~ m/^[0-9]{3,}.*/) {
-  		    $field942->add_subfields('2' => 'ddc');
-  		  } else {
-  		    $field942->add_subfields('2' => 'z');
-  		  }
-  		}
-  		# 6	Koha normalized classification for sorting
-  		
-  		# Add this field to the record
-  		$record->append_fields($field942);
-  				
-		# BUILD FIELD 952, mostly based on data from 099
-		
-		my @field099s = $record->field('099');
-        foreach my $field099 (@field099s) {
-		
-		  # Comments below are from 
-			# http://wiki.koha.org/doku.php?id=en:documentation:marc21holdings_holdings_data_information_for_vendors&s[]=952
-		
-  		# Create field 952, with a = "Permanent location"
-  		# Authorized value: branches
-		# owning library	 
-		# Code must be defined in System Administration > Libraries, Branches and Groups
-  		my $field952 = MARC::Field->new(952, '', '', 'a' => 'sksk');
-  		
-  		# Get more info for 952, and add subfields
-  		
-  		# b = Current location
-  		# Authorized value: branches
-		# branchcode	 
-		# holding library (usu. the same as 952$a )
-  		$field952->add_subfields('b' => 'sksk');
-				
-  		# c = Shelving location
-		# TODO
-		# Coded value, matching Authorized Value category ('LOC' in default installation)
-        # LOC  	AV  	Audio Visual  	
-        # LOC 	CHILD 	Children's Area 
-        # LOC 	DISPLAY On Display 	  
-        # LOC 	FIC 	Fiction
-        # LOC 	GEN 	General Stacks
-        # LOC 	NEW 	New Materials Shelf
-        # LOC 	REF 	Reference
-        # LOC 	STAFF 	Staff Office
-        # LOC 	INT		Til intern bruk
-        # LOC 	BOKL 	SKSK Boklager
-  		$field952->add_subfields('c' => 'GEN');
-  		# 099h = SKSK Boklager
-  		if (my $field099h = $field099->subfield('h')) {
-		  if ($field099h eq 'SKSK Boklager') {
-		    $field952->update('c' => 'BOKL');
-		  }
-  		}
-  		# 099q = Til internt bruk
-  		if (my $field099q = $field099->subfield('q')) {
-		  if ($field099q eq 'Til internt bruk') {
-		    $field952->update('c' => 'INT');
-		  }
-  		}
-			
-  		# d = Date acquired
-  		# TODO: 099d or 099w? 
-  		# Format of date: yyyy-mm-dd
-			# http://wiki.koha.org/doku.php?id=en:development:dateformats&s[]=952 
-  		if (my $field099d = $field099->subfield('d')) {
-			  $field099d = format_date($field099d);
-  		  $field952->add_subfields('d' => $field099d);
-  		}
-  		
-  		# e = Source of acquisition
-  		# coded value or vendor string
-			
-  		# f = Coded location qualifier
-  		
-  		# g = Cost, normal purchase price	
-        # decimal number, no currency symbol 
-        # TODO: remove Nkr
-		if (my $field020c = $record->subfield('020','c')) {
-  		  $field952->add_subfields('g' => $field020c);
-  		}
-			
-  		# h = Serial Enumeration / chronology	
-        # See: t
-			
-  		# j = Shelving control number	
-  		# STACK
-  
-  		# l = Total Checkouts	
-  
-  		# m = Total Renewals	
-  
-  		# n = Total Holds	
-  
-  		# o = Full call number 
-		if (my $field096 = $record->field('096')) {
-  		  $field952->add_subfields('o' => $field096->subfield('a'));
-  		}
-  
-  		# p = Barcode
-  		# max 20 characters 
-		# TODO: 099a or 099k? 
-  		if (my $field099a = $field099->subfield('a')) {
-  		  $field952->add_subfields('p' => $field099a);
-  		}
-  
-  		# q = Checked out
-  
-  		# r = Date last seen 
-  
-  		# s = Date last checked out	
-  
-  		# t = Copy number	
-  		if (my $field099b = $field099->subfield('b')) {
-			  if (length($field099b) < 7) {
-  		    $field952->add_subfields('t' => $field099b);
-  		  } else {
-			    # h = Serial Enumeration / chronology
-			    $field952->add_subfields('h' => $field099b);
-				}
-			}
-  
-  		# u = Uniform Resource Identifier	
-  
-  		# v = Cost, replacement price
-			# decimal number, no currency symbol
-  
-  		# w = Price effective from
-			# YYYY-MM-DD 
-  
-  		# x = Non-public note
-  
-  		# y = Koha item type
-		# coded value, required field for circulation 	 
-		# Coded value, must be defined in System Administration > Item types and Circulation Codes
-		if (my $field245h = lc($record->subfield('245', 'h'))) {
-		  StripLTSpace($field245h);
-		  if ($item_types{$field245h}) {
-		    $field952->add_subfields('y' => $item_types{$field245h});
-		  } else {
-            $field952->add_subfields('y' => 'X');	
-          }
-  		}
-		
-  		# z = Public note
-  
-  		# 0 = Withdrawn status
-  		# WITHDRAWN
-  
-  		# 1 = Lost status
-  		# LOST  	0 
-  		# LOST 	1 	Lost 
-  		# LOST 	2 	Long Overdue (Lost) 
-  		# LOST 	3 	Lost and Paid For
-  		# LOST 	4 	Missing
-		# 099q = Tapt
-		# 099q = Savnet
-		# 099q = Hevdet innlevert
-		if (my $field099q = $field099->subfield('q')) {
-		  if ($field099q eq 'Tapt') {
-		    $field952->add_subfields('1' => 1);
-		  } elsif ($field099q eq 'Savnet') {
-		  	$field952->add_subfields('1' => 4);
-		  } elsif ($field099q eq 'Hevdet innlevert') {
-		  	$field952->add_subfields('1' => 2);
-		  }
-  		}
-  
-  		# 2 = Source of classification or shelving scheme
-  		# cn_source
-  		# Values are in class_source.cn_source
-  		# See also 942$2
-  		# If 096a starts with three digits we count this as dcc-based scheme
-  		if ($record->field('096') && $record->field('096')->subfield('a')) {
-  		  my $field096a = $record->field('096')->subfield('a');
-  		  if ($field096a =~ m/^[0-9]{3,}.*/) {
-  		    $field952->add_subfields('2' => 'ddc');
-  		  } else {
-  		    $field952->add_subfields('2' => 'z');
-  		  }
-  		}
-  
-  		# 3 = Materials specified (bound volume or other part)
-  
-  		# 4 = Damaged status
-  		# DAMAGED  	0  	
-        # DAMAGED 	1 	Damaged 	 
-  
-  		# 5 = Use restrictions
-  		# RESTRICTED  	0  	
-        # RESTRICTED 	1 	Restricted Access
-		# 099q = Til internt bruk
-  
-  		# 6 = Koha normalized classification for sorting
-  
-  		# 7 = Not for loan	
-  		# NOT_LOAN
-        # 099q = Til internt bruk
-		# 099q = Kassert
-			
-  		# 8 = Collection code	
-  		# CCODE
-  
-  		# 9 = Koha itemnumber (autogenerated)
-  		
-  		# Add this field 952 to the record
-  		$record->append_fields($field952);
-		
-		}
-		
-		# 2. MOVE DATA FROM NON-NORMARC TO NORMARC FIELDS
-		
-		# 3. DELETE NON-NORMARC FIELDS
-		
-		$record = remove_field($record, '005');
-		$record = remove_field($record, '096');
-		$record = remove_field($record, '099');	
-	
-	}
+ 	$record = client_transform($record);
+
+	# OUTPUT
 	
 	print "----------------------------------------\n" if $debug;
 	
+	# --xml option is set
 	if ($xml) {
 
 	  if ($debug) {
@@ -361,10 +81,12 @@ while (my $record = $batch->next()) {
 	    $xmloutfile->write($record);
 	  } 
 	
+	# --debug, but no --xml 
 	} elsif ($debug) {
 	
       print $record->as_formatted(), "\n";
     
+    # Default output
     } else {
 	
 	  print $record->as_usmarc(), "\n";	
@@ -375,6 +97,7 @@ while (my $record = $batch->next()) {
 	
 	$count++;
 	
+	# Check if --limit is set and we need to stop processing
 	if ($limit > 0 && $count == $limit) {
 	  last;
 	} 
@@ -382,20 +105,23 @@ while (my $record = $batch->next()) {
 }
 print "\nEnd of records\n" if $debug;
 
-## make sure there weren't any problems
+# make sure there weren't any problems
 if ( my @warnings = $batch->warnings() ) {
   print "\nWarnings were detected!\n", @warnings if $debug;
 }
 
+### SUBROUTINES ###
+
+# Remove all occurences of a field
 sub remove_field {
 
-  my $rec = shift;
+	my $rec = shift;
 	my $field = shift;
 
-  while (my $delfield = $rec->field($field)) {
-    if ($delfield) {
-        $rec->delete_field($delfield);
-    }
+	while (my $delfield = $rec->field($field)) {
+		if ($delfield) {
+			$rec->delete_field($delfield);
+		}
 	}
 	
 	return $rec;
@@ -411,6 +137,7 @@ sub format_date {
 
 }
 
+# Get commandline options
 sub get_options {
   my $input_file = '';
   my $system = '';
@@ -420,7 +147,7 @@ sub get_options {
   my $help = '';
 
   GetOptions("i|infile=s" => \$input_file,
-	         "s|system=s" => \$system, 
+	         "c|client=s" => \$client, 
              "d|debug!" => \$debug,
              "x|xml=s" => \$xml, 
 			 "l|limit=s" => \$limit, 
@@ -429,9 +156,9 @@ sub get_options {
   
   pod2usage(-exitval => 0) if $help;
   pod2usage( -msg => "\nMissing Argument: -i, --infile required\n", -exitval => 1) if !$input_file;
-  pod2usage( -msg => "\nMissing Argument: -s, --system required\n", -exitval => 1) if !$system;
+  pod2usage( -msg => "\nMissing Argument: -c, --client required\n", -exitval => 1) if !$client;
 
-  return ($input_file, $system, $limit, $debug, $xml);
+  return ($input_file, $client, $limit, $debug, $xml);
 }       
 
 sub getToday {
@@ -463,9 +190,9 @@ n4k.pl -i inputfile -s system [-d] [-l] [-x] [-h] > outputfile
 
 Name of the MARC file to be read.
 
-=item B<-s, --system>
+=item B<-c, --client>
 
-Name of the ILS to convert from (bibliofil, tidemann).
+Short name for the client to be processed. Must correspond to a file called Client/[argument].pm
                                                        
 =item B<-d, --debug>
 
