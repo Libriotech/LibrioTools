@@ -1,82 +1,29 @@
 sub client_transform {
 
-	# Define mapping from item types in source to codes for Koha item types
-	# To be used in 942c and 952y
-	# We will lc before comparing, so use lowercase in the keys
-	my %item_types = (
-	  'dvd'        => 'DVD', 
-	  'tidsskrift' => 'TIDS', 
-	  'bok'        => 'BOK', 
-	  'rapport'    => 'BOK',
-	  'hefte'      => 'BOK',
-	  'småtrykk'   => 'BOK',
-	  'tegneserie' => 'BOK',
-	  'eng'        => 'BOK',
-	  'kombidokument' => 'BOK',
-	  'e-bok'      => 'EBOK', 
-	  'lydopptak'  => 'LBOK', 
-	  'vhs'        => 'VID', 
-	  'videogram'  => 'VID', 
-	  'video'      => 'VID', 
-	  'elektronisk ressurs'  => 'DIG',
-	  'dvd-rom'    => 'DIG',
-	  'cd-rom'     => 'DIG', 
-	  'maskinlesbar fil'  => 'DIG'
-	);
-
 	my $record = shift;
 
 		# 1. BUILD KOHA-SPECIFIC FIELDS
 		
-		# BUILD FIELD 942
-		
-		my $field942 = MARC::Field->new(942, '', '', 'a' => 'sksk');
+		# 942
   		
   		# a	Institution code [OBSOLETE]
+  		my $field942 = MARC::Field->new(942, '', '', 'a' => 'skski');
   		# c	Koha [default] item type
-  		if (my $field245h = lc($record->subfield('245', 'h'))) {
-  		  StripLTSpace($field245h);
-		  if ($item_types{$field245h}) {
-		    $field942->add_subfields('c' => $item_types{$field245h});
-		  } else {
-            $field942->add_subfields('c' => 'X');	
-          }
-  		}
   		# e	Edition
   		# h	Classification part
   		# i	Item part
-  		
   		# k	Call number prefix
   		# m	Call number suffix
-  		if ($record->field('096') && $record->field('096')->subfield('a')) {
-  		  my $field096a = $record->field('096')->subfield('a');
-  		  if ($field096a =~ m/ /) {
-  		    my ($pre, $suf) = split / /, $field096a;
-  		    $field942->add_subfields('k' => $pre);
-  		    $field942->add_subfields('m' => $suf); 
-  		  }
-  		}
-  		
   		# n	Suppress in OPAC
 		# SUPPRESS  0  	Vis i OPAC
 		# SUPPRESS 	1 	Ikke vis i OPAC
-		$field942->add_subfields('n' => 0);
-		
+		$field942->add_subfields('n' => 1);
   		# s	Serial record flag
   		# 0	Koha issues (borrowed), all copies
-  		
   		# 2	Source of classification or shelving scheme
   		# Values are in class_sources.cn_source
   		# See also 952$2
   		# If 096a starts with three digits we count this as dcc-based scheme
-  		if ($record->field('096') && $record->field('096')->subfield('a')) {
-  		  my $field096a = $record->field('096')->subfield('a');
-  		  if ($field096a =~ m/^[0-9]{3,}.*/) {
-  		    $field942->add_subfields('2' => 'ddc');
-  		  } else {
-  		    $field942->add_subfields('2' => 'z');
-  		  }
-  		}
   		# 6	Koha normalized classification for sorting
   		
   		# Add this field to the record
@@ -87,14 +34,14 @@ sub client_transform {
 		my @field099s = $record->field('099');
         foreach my $field099 (@field099s) {
 		
-		  # Comments below are from 
-			# http://wiki.koha.org/doku.php?id=en:documentation:marc21holdings_holdings_data_information_for_vendors&s[]=952
+        # Comments below are from 
+		# http://wiki.koha.org/doku.php?id=en:documentation:marc21holdings_holdings_data_information_for_vendors&s[]=952
 		
   		# Create field 952, with a = "Permanent location"
   		# Authorized value: branches
 		# owning library	 
 		# Code must be defined in System Administration > Libraries, Branches and Groups
-  		my $field952 = MARC::Field->new(952, '', '', 'a' => 'sksk');
+  		my $field952 = MARC::Field->new(952, '', '', 'a' => 'skski');
   		
   		# Get more info for 952, and add subfields
   		
@@ -102,7 +49,7 @@ sub client_transform {
   		# Authorized value: branches
 		# branchcode	 
 		# holding library (usu. the same as 952$a )
-  		$field952->add_subfields('b' => 'sksk');
+  		$field952->add_subfields('b' => 'skski');
 				
   		# c = Shelving location
 		# TODO
@@ -117,19 +64,8 @@ sub client_transform {
         # LOC 	STAFF 	Staff Office
         # LOC 	INT		Til intern bruk
         # LOC 	BOKL 	SKSK Boklager
-  		$field952->add_subfields('c' => 'GEN');
-  		# 099h = SKSK Boklager
-  		if (my $field099h = $field099->subfield('h')) {
-		  if ($field099h eq 'SKSK Boklager') {
-		    $field952->update('c' => 'BOKL');
-		  }
-  		}
-  		# 099q = Til internt bruk
-  		if (my $field099q = $field099->subfield('q')) {
-		  if ($field099q eq 'Til internt bruk') {
-		    $field952->update('c' => 'INT');
-		  }
-  		}
+        # LOC	IKT		SKSK IKT
+  		$field952->add_subfields('c' => 'IKT');
 			
   		# d = Date acquired
   		# TODO: 099d or 099w? 
@@ -148,9 +84,6 @@ sub client_transform {
   		# g = Cost, normal purchase price	
         # decimal number, no currency symbol 
         # TODO: remove Nkr
-		if (my $field020c = $record->subfield('020','c')) {
-  		  $field952->add_subfields('g' => $field020c);
-  		}
 			
   		# h = Serial Enumeration / chronology	
         # See: t
@@ -165,9 +98,6 @@ sub client_transform {
   		# n = Total Holds	
   
   		# o = Full call number 
-		if (my $field096 = $record->field('096')) {
-  		  $field952->add_subfields('o' => $field096->subfield('a'));
-  		}
   
   		# p = Barcode
   		# max 20 characters 
@@ -183,14 +113,6 @@ sub client_transform {
   		# s = Date last checked out	
   
   		# t = Copy number	
-  		if (my $field099b = $field099->subfield('b')) {
-			  if (length($field099b) < 7) {
-  		    $field952->add_subfields('t' => $field099b);
-  		  } else {
-			    # h = Serial Enumeration / chronology
-			    $field952->add_subfields('h' => $field099b);
-				}
-			}
   
   		# u = Uniform Resource Identifier	
   
@@ -205,16 +127,12 @@ sub client_transform {
   		# y = Koha item type
 		# coded value, required field for circulation 	 
 		# Coded value, must be defined in System Administration > Item types and Circulation Codes
-		if (my $field245h = lc($record->subfield('245', 'h'))) {
-		  StripLTSpace($field245h);
-		  if ($item_types{$field245h}) {
-		    $field952->add_subfields('y' => $item_types{$field245h});
-		  } else {
-            $field952->add_subfields('y' => 'X');	
-          }
-  		}
+	    $field952->add_subfields('y' => 'IKT');
 		
   		# z = Public note
+  		if (my $field099n = $field099->subfield('n')) {
+  		  $field952->add_subfields('z' => $field099n);
+  		}
   
   		# 0 = Withdrawn status
   		# WITHDRAWN
@@ -228,29 +146,12 @@ sub client_transform {
 		# 099q = Tapt
 		# 099q = Savnet
 		# 099q = Hevdet innlevert
-		if (my $field099q = $field099->subfield('q')) {
-		  if ($field099q eq 'Tapt') {
-		    $field952->add_subfields('1' => 1);
-		  } elsif ($field099q eq 'Savnet') {
-		  	$field952->add_subfields('1' => 4);
-		  } elsif ($field099q eq 'Hevdet innlevert') {
-		  	$field952->add_subfields('1' => 2);
-		  }
-  		}
   
   		# 2 = Source of classification or shelving scheme
   		# cn_source
   		# Values are in class_source.cn_source
   		# See also 942$2
   		# If 096a starts with three digits we count this as dcc-based scheme
-  		if ($record->field('096') && $record->field('096')->subfield('a')) {
-  		  my $field096a = $record->field('096')->subfield('a');
-  		  if ($field096a =~ m/^[0-9]{3,}.*/) {
-  		    $field952->add_subfields('2' => 'ddc');
-  		  } else {
-  		    $field952->add_subfields('2' => 'z');
-  		  }
-  		}
   
   		# 3 = Materials specified (bound volume or other part)
   
@@ -280,12 +181,10 @@ sub client_transform {
 		
 		}
 		
-		# 2. MOVE DATA FROM NON-NORMARC TO NORMARC FIELDS?
+		# 2. MOVE DATA FROM NON-NORMARC TO NORMARC FIELDS
 		
 		# 3. DELETE NON-NORMARC FIELDS
 		
-		$record = remove_field($record, '005');
-		$record = remove_field($record, '096');
 		$record = remove_field($record, '099');	
 
 	return $record;
