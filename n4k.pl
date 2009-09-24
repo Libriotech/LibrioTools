@@ -140,7 +140,7 @@ sub format_date {
 # Get commandline options
 sub get_options {
   my $input_file = '';
-  my $system = '';
+  my $client = '';
   my $debug = '';
   my $limit = 0;
   my $xml = '';
