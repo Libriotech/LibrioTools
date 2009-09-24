@@ -63,6 +63,10 @@ sub client_transform {
 		$field942->add_subfields('n' => 0);
 		
   		# s	Serial record flag
+  		if (lc($record->subfield('245', 'h')) eq 'tidsskrift') {
+			$field942->add_subfields('s' => '1');	
+  		}
+  		
   		# 0	Koha issues (borrowed), all copies
   		
   		# 2	Source of classification or shelving scheme
@@ -184,13 +188,13 @@ sub client_transform {
   
   		# t = Copy number	
   		if (my $field099b = $field099->subfield('b')) {
-			  if (length($field099b) < 7) {
-  		    $field952->add_subfields('t' => $field099b);
-  		  } else {
+			if (length($field099b) < 7) {
+  		    	$field952->add_subfields('t' => $field099b);
+  		  	} else {
 			    # h = Serial Enumeration / chronology
 			    $field952->add_subfields('h' => $field099b);
-				}
 			}
+		}
   
   		# u = Uniform Resource Identifier	
   
