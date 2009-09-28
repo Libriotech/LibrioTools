@@ -3,7 +3,7 @@ INSERT INTO subscription SET
 INSERT INTO subscription SET 
 	biblionumber = '[% serial.biblio %]', 
 	callnumber = '[% serial.callnumber %]', 
-	librarian = 'import'
+	librarian = 'import', 
 	branchcode = 'sksk', 
 	serialsadditems = 1;
 ;
