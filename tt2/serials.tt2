@@ -1,0 +1,10 @@
+INSERT INTO subscription SET 
+[% FOREACH serial IN serials %]
+INSERT INTO subscription SET 
+	biblionumber = '[% serial.biblio %]', 
+	callnumber = '[% serial.callnumber %]', 
+	librarian = 'import'
+	branchcode = 'sksk', 
+	serialsadditems = 1;
+;
+[%- END %]
