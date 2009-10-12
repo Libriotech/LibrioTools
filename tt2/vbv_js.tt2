@@ -1,3 +1,9 @@
+
+	<!-- TMPL_IF name="f[% pos %] " --> \
+		<option value=" " selected="selected">^ Ikke angitt</option> \
+		<!-- TMPL_ELSE --> \
+		<option value=" ">^ Ikke angitt</option> \
+		<!-- /TMPL_IF --> \
 [%- FOREACH key IN values.keys.sort %]
 	<!-- TMPL_IF name="f[% pos %][% key %]" --> \
 		<option value="[% key %]" selected="selected">[% key %] [% values.$key %]</option> \
