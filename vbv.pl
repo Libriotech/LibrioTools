@@ -28,7 +28,7 @@ use strict;
 open STDERR, ">&STDOUT" or die "cannot dup STDERR to STDOUT: $!\n";
 
 ## get command line options
-my ($input_file, $pos, $js, $debug) = get_options();
+my ($input_file, $pos, $js, $full, $debug) = get_options();
 print "\nStarting vbv.pl\n"			if $debug;
 print "Input File: $input_file\n"	if $debug;
 
@@ -63,11 +63,16 @@ print "\n" if $debug;
 print "End of lines\n" if $debug;
 
 # Output
-my $template = 'vbv.tt2';
+my $full_str = '';
+if ($full) {
+  $full_str = '_full';
+}
+my $template = 'vbv' . $full_str . '.tt2';
 if ($js) {
-	$template = 'vbv_js.tt2';	
+	$template = 'vbv' . $full_str . '_js.tt2';	
 }
 my $vars = {
+  'title' => $full, 
 	'pos' => $pos, 
 	'values'  => \%values, 
 };
@@ -86,6 +91,7 @@ sub get_options {
 	GetOptions('i|infile=s' => \$input_file,
 				'p|pos=s' => \$pos, 
 				'j|js' => \$js, 
+				'f|full=s' => \$full,
 				'd|debug!' => \$debug,
 				'h|?|help'   => \$help
 	           );
@@ -94,7 +100,7 @@ sub get_options {
 	pod2usage( -msg => "\nMissing argument: -i, --infile required\n", -exitval => 1) if !$input_file;
 	pod2usage( -msg => "\nMissing argument: -p, --pos required\n", -exitval => 1) if !$pos;
 	
-	return ($input_file, $pos, $js, $debug);
+	return ($input_file, $pos, $js, $full, $debug);
 }       
 
 __END__
@@ -122,6 +128,10 @@ What position in the field are we working on?
 =item B<-j, --js>
 
 Format values for inclusion in JavaScript, with "\" terminating lines. 
+
+=item B<-f, --full>
+
+Output a full field, including the whole table row. Argument is used as title. 
 
 =item B<-d, --debug>
 

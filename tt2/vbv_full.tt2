@@ -1,0 +1,6 @@
+<tr>
+		 <td>[% pos %] [% title %]</td>
+		 <td>
+		 <select name="f[% pos %]" id="f[% pos %]" size="1">
+		 [%- INCLUDE vbv.tt2 -%]</select>
+		 </td></tr>
