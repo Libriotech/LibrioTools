@@ -12,10 +12,18 @@ $rqbiblios->execute;
 $|=1;
 my $counter = 0;
 while (my ($biblionumber)= $rqbiblios->fetchrow_array){
-	$counter++;
-	print "$counter $biblionumber\n";
 
     my $record=GetMarcBiblio($biblionumber);
+	
+	# Only looking for 942$a = skskb
+	if ($record->field('942') && $record->field('942')->subfield('a') && $record->field('942')->subfield('a') ne 'skskb') {
+		next;	
+	} 
+	
+	$counter++;
+	print "$counter $biblionumber\n";
+	
+	# Loop through the items
     foreach my $field952 ($record->field('952')) {
     	
     	my $barcode = $field952->subfield('p');
