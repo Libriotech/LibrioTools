@@ -22,7 +22,7 @@ use Pod::Usage;
 use File::Slurp;
 use MARC::File::USMARC;
 use Data::Dumper;
-use Template;
+# use Template;
 use strict;
 
 ## get command line options
@@ -135,17 +135,17 @@ foreach my $line (@loans) {
 ### OUTPUT ###
 
 # Configure the Template Toolkit
-my $config = {
-    INCLUDE_PATH => 'tt2',  # or list ref
-    INTERPOLATE  => 1,      # expand "$var" in plain text
-    POST_CHOMP   => 0,      # cleanup whitespace 
-};
+# my $config = {
+#     INCLUDE_PATH => 'tt2',  # or list ref
+#     INTERPOLATE  => 1,      # expand "$var" in plain text
+#     POST_CHOMP   => 0,      # cleanup whitespace 
+# };
 # create Template object
-my $tt2 = Template->new($config) || die Template->error(), "\n";
-my $template = 'loans.tt2';
-my $vars = {
-	'loans'  => \@out_loans, 
-};
+# my $tt2 = Template->new($config) || die Template->error(), "\n";
+# my $template = 'loans.tt2';
+# my $vars = {
+# 	'loans'  => \@out_loans, 
+# };
 # $tt2->process($template, $vars) || die $tt2->error();
 
 ### SUBROUTINES ###
