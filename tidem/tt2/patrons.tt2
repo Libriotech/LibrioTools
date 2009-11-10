@@ -1,0 +1,17 @@
+SET NAMES 'utf8';
+[% FOREACH p IN patrons %]
+INSERT INTO borrowers SET
+	branchcode = 'sksk', 
+	categorycode = 'KAD', 
+	surname = '[% p.surname %]', 
+	firstname = '[% p.firstname %]', 
+	cardnumber = '[% p.barcode %]', 
+	borrowernumber = '[% p.personid %]', 
+	contactnote = '[% p.contactnote %]', 
+	phone = '[% p.phone %]', 
+	mobile = '[% p.mobile %]', 
+	fax = '[% p.fax %]', 
+	email = '[% p.email %]', 
+	address = '[% p.address %]', 
+	address2 = '[% p.address2 %]';
+[%- END %]
