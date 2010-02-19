@@ -11,6 +11,7 @@ use C4::Context;
 use Template;
 use Getopt::Long;
 use Pod::Usage;
+use Data::Dumper;
 
 # Configure the Template Toolkit
 my $config = {
@@ -33,71 +34,66 @@ if ($verbose) {
 my $dbh   = C4::Context->dbh;
 
 # Config
-my @itemtypes = (
-	{
+my @itemtypes = ({
 	name       => 'Bøker og periodika (antall bind)',
-	itypes     => "'BOK' or 'LRM'",
+	itypes     => ["BOK", "LRM"],
 	holdings   => 0,
 	holdings_n => '007',
 	added      => 0,
 	added_n    => '008',
 	deleted    => 0, 
 	deleted_n  => '009'
-	}, 	{
+}, 	{
 	name       => 'AV-dokumenter',
-	itypes     => "'DVD' or 'LBOK' or 'VID'",
+	itypes     => ["DVD", "LBOK", "VID"],
 	holdings   => 0,
 	holdings_n => '023',
 	added      => 0,
 	added_n    => '024',
 	deleted    => 0, 
 	deleted_n  => '025'
-	},	{
+},	{
 	name       => 'Annet bibliotekmateriale',
-	itypes     => "'X'",
+	itypes     => ["X"],
 	holdings   => 0,
 	holdings_n => '023',
 	added      => 0,
 	added_n    => '024',
 	deleted    => 0, 
 	deleted_n  => '025'
-	}, 	{
+}, 	{
 	name       => 'Andre digitale dokumenter',
-	itypes     => "'DIG'",
+	itypes     => ["DIG"],
 	holdings   => 0,
 	holdings_n => '047',
 	added      => 0,
 	added_n    => '048',
 	deleted    => 0, 
 	deleted_n  => '049'
-	}
-);
+});
 
 my $count = scalar(@itemtypes);
 
 for (my $i=0; $i < $count; $i++) {
 
 	# Holdings
-	my $hold_query = "SELECT count(i.biblionumber)
-					FROM items i 
-					WHERE YEAR(i.dateaccessioned) < 2010
-					AND i.homebranch = '" . $homebranch . "'
-					AND i.itype = " . $itemtypes[$i]{'itypes'} . "
-					GROUP BY i.itype 
-					ORDER BY i.itype";
+	my $hold_query = "SELECT count(biblionumber)
+					FROM items 
+					WHERE YEAR(dateaccessioned) < 2010
+					AND homebranch = '" . $homebranch . "'
+					AND " . orify('itype', @{$itemtypes[$i]{'itypes'}});
+	print "$hold_query\n";
 	my $hold_sth = $dbh->prepare($hold_query);
 	$hold_sth->execute();
 	my $hold_count = $hold_sth->fetchrow;
 	$itemtypes[$i]{'holdings'} = $hold_count;
 	
 	# Additions
-	my $acq_query = "SELECT count(i.biblionumber)
-					FROM items i 
-					WHERE YEAR(i.dateaccessioned) = 2009
-					AND i.homebranch = '" . $homebranch . "'
-					AND i.itype = " . $itemtypes[$i]{'itypes'} . "
-					GROUP BY i.itype 
-					ORDER BY i.itype";
+	my $acq_query = "SELECT count(biblionumber)
+					FROM items 
+					WHERE YEAR(dateaccessioned) = 2009
+					AND homebranch = '" . $homebranch . "'
+					AND " . orify('itype', @{$itemtypes[$i]{'itypes'}});
 	my $acq_sth = $dbh->prepare($acq_query);
 	$acq_sth->execute();
 	my $acq_count = $acq_sth->fetchrow;
@@ -105,11 +101,11 @@ for (my $i=0; $i < $count; $i++) {
 	$itemtypes[$i]{'added'} = $acq_count;
 	
 	# Deletions
-	my $del_query = "SELECT count(d.itemnumber) 
-	                 FROM deleteditems d
-	                 WHERE YEAR(d.timestamp) = 2009 
-	                 AND d.homebranch = '" . $homebranch . "'
-					 AND d.itype = " . $itemtypes[$i]{'itypes'};
+	my $del_query = "SELECT count(itemnumber) 
+	                 FROM deleteditems
+	                 WHERE YEAR(timestamp) = 2009 
+	                 AND homebranch = '" . $homebranch . "'
+					 AND " . orify('itype', @{$itemtypes[$i]{'itypes'}});
 	my $del_sth = $dbh->prepare($del_query);
 	$del_sth->execute();
 	my $del_count = $del_sth->fetchrow;
@@ -122,7 +118,7 @@ for (my $i=0; $i < $count; $i++) {
 
 }
 
-# Periodicals
+# Periodicals - TODO! 
 my @peri = (
 	{
 	name => 'Unike titler', 
@@ -151,13 +147,36 @@ my @peri = (
 	}
 );
 
-# Holdings
 my $peri_query = "select count(*) from subscription where branchcode = '$homebranch'";
 my $peri_sth = $dbh->prepare($peri_query);
 $peri_sth->execute();
 my $peri_count = $peri_sth->fetchrow;
 if (!$peri_count) { $peri_count = 0; }
 $peri[0]{'holdings'} = $peri_count;
+
+# Circulation
+my %circ = ({
+	name         => 'Originaldokumenter',
+	type         => "issue",
+	internal     => 0,
+	internal_n   => '081',
+	internal_sql => "'ELE' or 'KAD' or 'VER' or 'ANS' or 'BIB'", 
+	external     => 0,
+	external_n   => '082', 
+	external_sql => "'EKS' or 'BIBLIOTEK'"
+}, {
+	name       => 'herav fornyelser',
+	type       => "renew",
+	internal   => 0,
+	internal_n => '150',
+	internal_sql => "'ELE' or 'KAD' or 'VER' or 'ANS' or 'BIB'",
+	external   => 0,
+	external_n => '151', 
+	external_sql => "'EKS' or 'BIBLIOTEK'"
+});
+
+# select count(*) from statistics where branch = 'sksk' and YEAR(datetime) = 2009 and DATE(datetime) > '2009-10-22';
+# select count(*), b.categorycode from statistics as s, borrowers as b where s.borrowernumber = b.borrowernumber and s.branch = 'sksk' and type = 'issue' and YEAR(s.datetime) = 2009 and DATE(s.datetime) > '2009-10-22' group by b.categorycode;
 
 # Output
 my $template = 'abmstat.tt2';
@@ -168,6 +187,25 @@ my $vars = {
 my $htmlfile = "/home/sksk/public_html/abmstats.html";
 $tt2->process($template, $vars, $htmlfile) || die $tt2->error();
 print "Go have a look at $htmlfile \n";
+
+# Takes the name of a column and an array of values and creates a list of ORed values: 
+# In: orify('i.itype', ['DVD', 'LBOK', 'VID']);
+# Out: "(i.itype = 'DVD' OR i.itype = 'LBOK' OR i.itype = 'VID')"
+sub orify {
+	my $column = shift;
+	my @values = @_;
+	my $count = 0;
+	my $out = '(';
+	for my $value (@values) {
+		if ($count > 0) {
+			$out .= " OR ";
+		}
+		$out .= "$column = '" . $value . "'";
+		$count++; 
+	}
+	$out .= ')';
+	return $out;
+}
 
 # Get commandline options
 sub get_options {
