@@ -6,4 +6,4 @@ svn co svn://svn.skolelinux.org/skolelinux/trunk/i18n/other/nb/koha/ /tmp/no/nb
 svn co svn://svn.skolelinux.org/skolelinux/trunk/i18n/other/nn/koha/ /tmp/no/nn
 
 # Flytt .po-filene dit de hører hjemme
-mv /tmp/no/*/* /usr/share/koha/misc/translator/po/
+mv /tmp/no/*/* /koha/kohanor/misc/translator/po/
