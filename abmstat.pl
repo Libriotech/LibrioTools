@@ -82,7 +82,6 @@ for (my $i=0; $i < $count; $i++) {
 					WHERE YEAR(dateaccessioned) < 2010
 					AND homebranch = '" . $homebranch . "'
 					AND " . orify('itype', @{$itemtypes[$i]{'itypes'}});
-	print "$hold_query\n";
 	my $hold_sth = $dbh->prepare($hold_query);
 	$hold_sth->execute();
 	my $hold_count = $hold_sth->fetchrow;
@@ -155,38 +154,77 @@ if (!$peri_count) { $peri_count = 0; }
 $peri[0]{'holdings'} = $peri_count;
 
 # Circulation
-my %circ = ({
+my @circ = ({
 	name         => 'Originaldokumenter',
 	type         => "issue",
 	internal     => 0,
 	internal_n   => '081',
-	internal_sql => "'ELE' or 'KAD' or 'VER' or 'ANS' or 'BIB'", 
+	internal_sql => ["ELE", "KAD", "VER", "ANS", "BIB"], 
 	external     => 0,
 	external_n   => '082', 
-	external_sql => "'EKS' or 'BIBLIOTEK'"
+	external_sql => ["EKS", "BIBLIOTEK"]
 }, {
 	name       => 'herav fornyelser',
 	type       => "renew",
 	internal   => 0,
 	internal_n => '150',
-	internal_sql => "'ELE' or 'KAD' or 'VER' or 'ANS' or 'BIB'",
+	internal_sql => ["ELE", "KAD", "VER", "ANS", "BIB"], 
 	external   => 0,
 	external_n => '151', 
-	external_sql => "'EKS' or 'BIBLIOTEK'"
+	external_sql => ["EKS", "BIBLIOTEK"]
 });
 
-# select count(*) from statistics where branch = 'sksk' and YEAR(datetime) = 2009 and DATE(datetime) > '2009-10-22';
-# select count(*), b.categorycode from statistics as s, borrowers as b where s.borrowernumber = b.borrowernumber and s.branch = 'sksk' and type = 'issue' and YEAR(s.datetime) = 2009 and DATE(s.datetime) > '2009-10-22' group by b.categorycode;
+my $circ_count = scalar(@circ);
+
+for (my $i=0; $i < $circ_count; $i++) {
+
+	$circ[$i]{'internal'} = get_value(
+		"SELECT count(*) from statistics as s, borrowers as b
+		WHERE s.borrowernumber = b.borrowernumber 
+		AND s.branch = '" . $homebranch . "' 
+		AND type = '" . $circ[$i]{'type'} . "'
+		AND YEAR(s.datetime) = 2009 
+		AND DATE(s.datetime) > '2009-10-22' 
+		AND " . orify('b.categorycode', @{$circ[$i]{'internal_sql'}})
+	);
+	$circ[$i]{'external'} = get_value(
+		"SELECT count(*) from statistics as s, borrowers as b
+		WHERE s.borrowernumber = b.borrowernumber 
+		AND s.branch = '" . $homebranch . "' 
+		AND type = '" . $circ[$i]{'type'} . "'
+		AND YEAR(s.datetime) = 2009 
+		AND DATE(s.datetime) > '2009-10-22' 
+		AND " . orify('b.categorycode', @{$circ[$i]{'external_sql'}})
+	);
+	
+	# if ($verbose) {
+	# 	print $itemtypes[$i]{'name'}, ": $hold_count\t+$acq_count\t-$del_count\n";
+	# }
+
+}
+
+# Add the renewals to the issues - that's how they want it...
+$circ[0]{'internal'} = $circ[0]{'internal'} + $circ[1]{'internal'};
+$circ[0]{'external'} = $circ[0]{'external'} + $circ[1]{'external'};
 
 # Output
 my $template = 'abmstat.tt2';
 my $vars = {
 	'holdings'  => \@itemtypes,
-	'periodicals' => \@peri 
+	'periodicals' => \@peri, 
+	'circ' => \@circ
 };
 my $htmlfile = "/home/sksk/public_html/abmstats.html";
 $tt2->process($template, $vars, $htmlfile) || die $tt2->error();
 print "Go have a look at $htmlfile \n";
+
+# Takes a string of SQL and returns an integer
+sub get_value {
+	my $sql = shift;
+	my $sth = $dbh->prepare($sql);
+	$sth->execute();
+	return $sth->fetchrow;	
+}
 
 # Takes the name of a column and an array of values and creates a list of ORed values: 
 # In: orify('i.itype', ['DVD', 'LBOK', 'VID']);

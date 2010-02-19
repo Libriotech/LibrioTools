@@ -48,6 +48,16 @@ html {
 
 <h2>Bibliotekbruk</h2>
 
+<table>
+<tr><th></th><th>Innen eget bibliotek</th><th></th><th>Enkeltpers./inst.</th><th></th></tr>
+[% FOREACH c IN circ %]
+<tr><td>[% c.name %]</td>
+    <td class="result">[% c.internal %]</td><td class="field">[% c.internal_n %]</td>
+    <td class="result">[% c.external %]</td><td class="field">[% c.external_n %]</td>
+</tr>
+[% END -%] 
+</table>
+
 <hr />
 
 [% USE date %]
