@@ -179,7 +179,8 @@ my $circ_count = scalar(@circ);
 for (my $i=0; $i < $circ_count; $i++) {
 
 	$circ[$i]{'internal'} = get_value(
-		"SELECT count(*) from statistics as s, borrowers as b
+		"SELECT count(*) 
+		FROM statistics as s, borrowers as b
 		WHERE s.borrowernumber = b.borrowernumber 
 		AND s.branch = '" . $homebranch . "' 
 		AND type = '" . $circ[$i]{'type'} . "'
@@ -188,7 +189,8 @@ for (my $i=0; $i < $circ_count; $i++) {
 		AND " . orify('b.categorycode', @{$circ[$i]{'internal_sql'}})
 	);
 	$circ[$i]{'external'} = get_value(
-		"SELECT count(*) from statistics as s, borrowers as b
+		"SELECT count(*) 
+		FROM statistics as s, borrowers as b
 		WHERE s.borrowernumber = b.borrowernumber 
 		AND s.branch = '" . $homebranch . "' 
 		AND type = '" . $circ[$i]{'type'} . "'
@@ -207,12 +209,32 @@ for (my $i=0; $i < $circ_count; $i++) {
 $circ[0]{'internal'} = $circ[0]{'internal'} + $circ[1]{'internal'};
 $circ[0]{'external'} = $circ[0]{'external'} + $circ[1]{'external'};
 
+# Administrativia
+
+my @admin = ({
+ 	name  => 'Totalt antall studenter og ansatte i underv.inst.',
+ 	n     => '003', 
+ 	sql   => "SELECT COUNT(*) FROM borrowers WHERE " . orify('categorycode', @{["ELE", "KAD", "VER", "ANS", "BIB"]}), 
+ 	value => 0
+}, {
+	name  => 'Antall aktive lånere i reapporteringsåret',
+	n     => '006', 
+	sql   => "SELECT COUNT(DISTINCT borrowernumber) FROM statistics WHERE DATE(datetime) > '2009-10-22'", 
+	value => 0
+});
+
+my $admin_count = scalar(@admin);
+for (my $i=0; $i < $admin_count; $i++) {
+	$admin[$i]{'value'} = get_value($admin[$i]{'sql'});
+}
+ 
 # Output
 my $template = 'abmstat.tt2';
 my $vars = {
-	'holdings'  => \@itemtypes,
+	'holdings'    => \@itemtypes,
 	'periodicals' => \@peri, 
-	'circ' => \@circ
+	'circ'        => \@circ,
+	'admin'       => \@admin
 };
 my $htmlfile = "/home/sksk/public_html/abmstats.html";
 $tt2->process($template, $vars, $htmlfile) || die $tt2->error();

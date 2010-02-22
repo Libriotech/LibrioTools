@@ -58,6 +58,16 @@ html {
 [% END -%] 
 </table>
 
+<h2>Administrative opplysninger</h2>
+
+<table>
+[% FOREACH a IN admin %]
+<tr><td>[% a.name %]</td>
+    <td class="result">[% a.value %]</td><td class="field">[% a.n %]</td>
+</tr>
+[% END -%] 
+</table>
+
 <hr />
 
 [% USE date %]
