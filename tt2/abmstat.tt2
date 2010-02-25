@@ -48,6 +48,8 @@ html {
 
 <h2>Bibliotekbruk</h2>
 
+<h3>Lokale utlån</h3>
+
 <table>
 <tr><th></th><th>Innen eget bibliotek</th><th></th><th>Enkeltpers./inst.</th><th></th></tr>
 [% FOREACH c IN circ %]
@@ -57,6 +59,19 @@ html {
 </tr>
 [% END -%] 
 </table>
+
+<h3>Fjernlån</h3>
+
+<table>
+<tr><th></th><th>Innenlandske</th><th></th><th>Utenlandske</th><th></th></tr>
+[% FOREACH i IN ill %]
+<tr><td>[% i.name %]</td>
+    <td class="result">[% i.dom_value %]</td><td class="field">[% i.dom_n %]</td>
+    <td class="result">[% i.int_value %]</td><td class="field">[% i.int_n %]</td>
+</tr>
+[% END -%] 
+</table>
+
 
 <h2>Administrative opplysninger</h2>
 

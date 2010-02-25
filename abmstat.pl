@@ -152,6 +152,7 @@ $peri_sth->execute();
 my $peri_count = $peri_sth->fetchrow;
 if (!$peri_count) { $peri_count = 0; }
 $peri[0]{'holdings'} = $peri_count;
+$peri[1]{'holdings'} = $peri_count;
 
 # Circulation
 my @circ = ({
@@ -185,7 +186,7 @@ for (my $i=0; $i < $circ_count; $i++) {
 		AND s.branch = '" . $homebranch . "' 
 		AND type = '" . $circ[$i]{'type'} . "'
 		AND YEAR(s.datetime) = 2009 
-		AND DATE(s.datetime) > '2009-10-22' 
+		AND DATE(s.datetime) > '2009-10-22'
 		AND " . orify('b.categorycode', @{$circ[$i]{'internal_sql'}})
 	);
 	$circ[$i]{'external'} = get_value(
@@ -208,6 +209,33 @@ for (my $i=0; $i < $circ_count; $i++) {
 # Add the renewals to the issues - that's how they want it...
 $circ[0]{'internal'} = $circ[0]{'internal'} + $circ[1]{'internal'};
 $circ[0]{'external'} = $circ[0]{'external'} + $circ[1]{'external'};
+
+# ILL
+my $ill_total = get_value("SELECT count(*) 
+							FROM statistics as s, borrowers as b 
+							WHERE s.borrowernumber = b.borrowernumber 
+							AND s.branch = 'sksk' 
+							AND type = 'issue' 
+							AND YEAR(s.datetime) = 2009 
+							AND DATE(s.datetime) > '2009-10-22' 
+							AND b.categorycode = 'BIBLIOTEK'");
+my $ill_domestic = get_value("SELECT count(*) 
+							FROM statistics as s, borrowers as b 
+							WHERE s.borrowernumber = b.borrowernumber 
+							AND s.branch = 'sksk' 
+							AND type = 'issue' 
+							AND YEAR(s.datetime) = 2009 
+							AND DATE(s.datetime) > '2009-10-22' 
+							AND b.categorycode = 'BIBLIOTEK' 
+							AND (b.country = 'Norge' OR b.country = '')");
+
+my @ill = ({
+	name      => "Utsendte originaldokumenter", 
+	dom_n     => '095', 
+	dom_value => $ill_domestic, 
+	int_n     => '096', 
+	int_value => $ill_total - $ill_domestic
+});
 
 # Administrativia
 
@@ -234,7 +262,8 @@ my $vars = {
 	'holdings'    => \@itemtypes,
 	'periodicals' => \@peri, 
 	'circ'        => \@circ,
-	'admin'       => \@admin
+	'admin'       => \@admin,
+	'ill'         => \@ill
 };
 my $htmlfile = "/home/sksk/public_html/abmstats.html";
 $tt2->process($template, $vars, $htmlfile) || die $tt2->error();
