@@ -125,7 +125,7 @@ foreach my $line (@loans) {
 		my ($day, $month, $year) = split(/\./, $3);
 		my $borrowdate = "$year-$month-$day 00:00:00 0";
 		
-		if (!$books{$1}) {
+		if ($books{$1}) {
 			print "$borrowdate\tissue\t$patron_barcode\t$book_barcode\n";
 		}
 	}
