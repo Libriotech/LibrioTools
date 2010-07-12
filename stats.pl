@@ -65,13 +65,17 @@ if ($valueof && $valueof !~ m/[0-9]{3}[a-z0-9]{1}/) {
 
 my $marcfile = MARC::File::USMARC->in($input_file);
 
+my $count = 0;
+
 while ( my $record = $marcfile->next() ) {
+
+	$count++;
 
 	# Dump all the records in the file	
 	if ($dump) {
 		
 	  print $record->as_formatted(), "\n";
-	  print "----------------------------------------\n";
+	  print "------------ $count ----------------------------\n";
 	
 	# Print all the records that do not have the field given in missing
 	} elsif ($missing) {

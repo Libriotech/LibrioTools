@@ -1,0 +1,92 @@
+<html>
+<head>
+<title>ABM-statistikk</title>
+<style type="text/css">
+html {
+	font-family: sans-serif;	
+}
+.result {
+	border: 1px solid black;
+	text-align: right;
+}
+.field {
+	font-size: small;	
+}
+</style>
+</head>
+<body>
+
+<h1>ABM-statistikk</h1>
+
+<h2>Samlinger</h2>
+
+<h3>Antall fysiske og digitale enheter</h3>
+
+<table>
+<tr><th></th><th>Bestand pr. 31.12</th><th></th><th>Tilvekst i 2009</th><th></th><th>Avgang i 2009</th><th></th></tr>
+[% FOREACH itype IN holdings %]
+<tr><td title="Dokumenttype(r): [% itype.itypes %]">[% itype.name %]</td>
+    <td class="result">[% itype.holdings %]</td><td class="field">[% itype.holdings_n %]</td>
+    <td class="result">[% itype.added %]</td><td class="field">[% itype.added_n %]</td>
+    <td class="result">[% itype.deleted %]</td><td class="field">[% itype.deleted_n %]</td>  
+</tr>
+[% END -%] 
+</table>
+
+<h3>Tidsskrifter</h3>
+
+<table>
+<tr><th></th><th>Bestand pr. 31.12</th><th></th><th>Tilvekst i 2009</th><th></th><th>Avgang i 2009</th><th></th></tr>
+[% FOREACH p IN periodicals %]
+<tr><td>[% p.name %]</td>
+    <td class="result">[% p.holdings %]</td><td class="field">[% p.holdings_n %]</td>
+    <td class="result">[% p.added %]</td><td class="field">[% p.added_n %]</td>
+    <td class="result">[% p.deleted %]</td><td class="field">[% p.deleted_n %]</td>  
+</tr>
+[% END -%] 
+</table>
+
+<h2>Bibliotekbruk</h2>
+
+<h3>Lokale utlån</h3>
+
+<table>
+<tr><th></th><th>Innen eget bibliotek</th><th></th><th>Enkeltpers./inst.</th><th></th></tr>
+[% FOREACH c IN circ %]
+<tr><td>[% c.name %]</td>
+    <td class="result">[% c.internal %]</td><td class="field">[% c.internal_n %]</td>
+    <td class="result">[% c.external %]</td><td class="field">[% c.external_n %]</td>
+</tr>
+[% END -%] 
+</table>
+
+<h3>Fjernlån</h3>
+
+<table>
+<tr><th></th><th>Innenlandske</th><th></th><th>Utenlandske</th><th></th></tr>
+[% FOREACH i IN ill %]
+<tr><td>[% i.name %]</td>
+    <td class="result">[% i.dom_value %]</td><td class="field">[% i.dom_n %]</td>
+    <td class="result">[% i.int_value %]</td><td class="field">[% i.int_n %]</td>
+</tr>
+[% END -%] 
+</table>
+
+
+<h2>Administrative opplysninger</h2>
+
+<table>
+[% FOREACH a IN admin %]
+<tr><td>[% a.name %]</td>
+    <td class="result">[% a.value %]</td><td class="field">[% a.n %]</td>
+</tr>
+[% END -%] 
+</table>
+
+<hr />
+
+[% USE date %]
+<p>Generert av <a href="http://github.com/MagnusEnger/LibrioTools/">LibrioTools</a>/abmstat.pl [% date.format %].</p>
+
+</body>
+</html>

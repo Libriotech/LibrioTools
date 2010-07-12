@@ -9,6 +9,7 @@ sub client_transform {
  	# a	Institution code [OBSOLETE]
  	my $field942 = MARC::Field->new(942, '', '', 'a' => 'skskb');
  	# c	Koha [default] item type
+ 	$field942->add_subfields('c' => 'LRM');
  	# e	Edition
  	# h	Classification part
  	# i	Item part
@@ -65,7 +66,7 @@ sub client_transform {
 	    # LOC 	INT		Til intern bruk
 	    # LOC 	BOKL 	SKSK Boklager
 	    # LOC	IKT		SKSK IKT
-	 	$field952->add_subfields('c' => 'IKT');
+	 	$field952->add_subfields('c' => 'BOKL');
 			
 	 	# d = Date acquired
 	 	# TODO: 099d or 099w? 
@@ -107,7 +108,15 @@ sub client_transform {
 		# q = Checked out
 		# r = Date last seen 
 		# s = Date last checked out	
-		# t = Copy number	
+		# t = Copy number
+		if (my $field099b = $field099->subfield('b')) {
+			if (length($field099b) < 7) {
+  		    	$field952->add_subfields('t' => $field099b);
+  		  	} else {
+			    # h = Serial Enumeration / chronology
+			    $field952->add_subfields('h' => $field099b);
+			}
+		}
 	 	# u = Uniform Resource Identifier	
 	  	# v = Cost, replacement price
 		# decimal number, no currency symbol
@@ -120,7 +129,7 @@ sub client_transform {
 	 	# y = Koha item type
 		# coded value, required field for circulation 	 
 		# Coded value, must be defined in System Administration > Item types and Circulation Codes
-	    # $field952->add_subfields('y' => 'BOK');
+	    $field952->add_subfields('y' => 'LRM');
 		
 	 	# z = Public note
 	 	if (my $field099n = $field099->subfield('n')) {
