@@ -276,6 +276,7 @@ stats.pl - Produce stats about a file containing MARC-records.
 =head1 SYNOPSIS
             
 ./stats.pl -i records.mrc --field 245
+./stats.pl -i records.mrc --valueof all --html /tmp/records
                
 =head1 OPTIONS
               
