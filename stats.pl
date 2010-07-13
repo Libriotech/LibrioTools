@@ -295,7 +295,7 @@ Print records that do not have the given field e.g. 245
 
 =item B<--valueof>
 
-Show values from this subfield, e.g. 600a
+Show values from this subfield, e.g. 600a, 600, 60., 6.., all
 
 =item B<--html>
 
