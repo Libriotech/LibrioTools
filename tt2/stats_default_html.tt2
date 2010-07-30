@@ -2,17 +2,17 @@
 
 <table>
 [% FOREACH field IN subfields -%]
-[% FOREACH sub IN field.value %]
-<tr>
-[% IF links == 1 %]
-<td><a href="stats_valueof_[% field.key %][% sub.key %].html">[% field.key %]\$[% sub.key %]</a></td>
-[% ELSE %]
-<td>[% field.key %]\$[% sub.key %]</td>
-[% END %]
-<td>[% allowed_fields.defined(field.key) ? ' ' : '<span title="Not defined in current dialect" class="hihglight">*</span>' %]</td>
-<td>[% sub.value -%]</tr>
-</tr>
-[% END -%]
+  [% FOREACH sub IN field.value %]
+    <tr>
+    [% IF links == 1 %]
+      <td><a href="stats_valueof_[% field.key %][% sub.key %].html">[% field.key %]\$[% sub.key %]</a></td>
+    [% ELSE %]
+      <td>[% field.key %]\$[% sub.key %]</td>
+    [% END %]
+    <td>[% allowed_fields.defined(field.key) ? ' ' : '<span title="Not defined in current dialect" class="hihglight">*</span>' %]</td>
+    <td>[% sub.value -%]</tr>
+    </tr>
+  [% END -%]
 [% END -%]
 </table>
 
