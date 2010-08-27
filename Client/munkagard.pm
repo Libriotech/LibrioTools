@@ -50,14 +50,14 @@ sub client_transform {
 
   # c	Koha [default] item type
   # TODO
-  if (my $field245h = lc($record->subfield('245', 'h'))) {
-    StripLTSpace($field245h);
-    if ($item_types{$field245h}) {
-      $field942->add_subfields('c' => $item_types{$field245h});
-    } else {
-      $field942->add_subfields('c' => 'X');	
-    }
-  }
+  # if (my $field245h = lc($record->subfield('245', 'h'))) {
+  #   StripLTSpace($field245h);
+  #   if ($item_types{$field245h}) {
+  #     $field942->add_subfields('c' => $item_types{$field245h});
+  #   } else {
+  #     $field942->add_subfields('c' => 'X');	
+  #   }
+  # }
 
   # e	Edition
   # h	Classification part
@@ -66,14 +66,14 @@ sub client_transform {
   # k	Call number prefix
   # m	Call number suffix
   # TODO
-  if ($record->field('096') && $record->field('096')->subfield('a')) {
-    my $field096a = $record->field('096')->subfield('a');
-    if ($field096a =~ m/ /) {
-      my ($pre, $suf) = split / /, $field096a;
-      $field942->add_subfields('k' => $pre);
-      $field942->add_subfields('m' => $suf); 
-    }
-  }
+  # if ($record->field('096') && $record->field('096')->subfield('a')) {
+  #   my $field096a = $record->field('096')->subfield('a');
+  #   if ($field096a =~ m/ /) {
+  #     my ($pre, $suf) = split / /, $field096a;
+  #     $field942->add_subfields('k' => $pre);
+  #     $field942->add_subfields('m' => $suf); 
+  #   }
+  # }
 
   # n	Suppress in OPAC
   # SUPPRESS  0  	Vis i OPAC
