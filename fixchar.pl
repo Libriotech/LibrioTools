@@ -1,6 +1,12 @@
 #!/usr/bin/perl -w
 
+# This needs to point to the file Charset.pm from Koha (http://koha-community.org/)
+# You probably need to change this line for the script to work on your system
 require "/home/magnus/scripts/kohanor32/C4/Charset.pm";
+
+# You will also need to set the PERL5LIB environment variable to the directory on your 
+# system that contains the C4 directory of Koha
+
 use MARC::File::USMARC;
 use Getopt::Long;
 use Pod::Usage;
