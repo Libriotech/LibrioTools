@@ -10,6 +10,7 @@ require "/home/magnus/scripts/kohanor32/C4/Charset.pm";
 use MARC::File::USMARC;
 use Getopt::Long;
 use Pod::Usage;
+use Data::Dumper;
 use strict;
 use warnings;
 
@@ -42,12 +43,15 @@ while ( my $record = $marcfile->next() ) {
 
   if ($verbose) { 
     print $new_record->as_formatted(), "\n"; 
+    if ($errors_arrayref) {
+      print Dumper $errors_arrayref;
+    }
     print "--- $c -- From: $converted_from ----------------------------------\n"; 
   } else {
     print $new_record->as_usmarc(), "\n";
   }
 
-  if ($c == $limit) { last; }
+  if ($limit && ($c == $limit)) { last; }
 
 }
 
