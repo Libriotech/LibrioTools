@@ -83,12 +83,15 @@ while (my $record = $batch->next()) {
 	
 	# --debug, but no --xml 
 	} elsif ($debug) {
-	
+
       print $record->as_formatted(), "\n";
     
     # Default output
     } else {
 	
+	  # Seems to not work?
+          # $record->encoding( 'UTF-8' );
+
 	  print $record->as_usmarc(), "\n";	
 	
 	}
