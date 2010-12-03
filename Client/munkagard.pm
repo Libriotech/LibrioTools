@@ -232,7 +232,7 @@ sub client_transform {
     #   if ($item_types{$field245h}) {
     # 	$field952->add_subfields('y' => $item_types{$field245h});
     #   } else {
-    # 	$field952->add_subfields('y' => 'X');	
+    	$field952->add_subfields('y' => 'X');	
     #   }
     # }
 
@@ -308,8 +308,8 @@ sub client_transform {
 
   # 3. DELETE NON-NORMARC FIELDS
 
-  $record = remove_field($record, '005');
-  $record = remove_field($record, '096');
+  # $record = remove_field($record, '005');
+  # $record = remove_field($record, '096');
   $record = remove_field($record, '099');	
 
   return $record;
