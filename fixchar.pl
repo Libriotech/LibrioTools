@@ -13,6 +13,7 @@ use Pod::Usage;
 use Data::Dumper;
 use strict;
 use warnings;
+binmode STDOUT, ":utf8";
 
 my ($input_file, $limit, $encoding_filter, $verbose) = get_options();
 
@@ -31,7 +32,7 @@ while ( my $record = $marcfile->next() ) {
 
   $c++;
 
-  my ($new_record, $converted_from, $errors_arrayref) = C4::Charset::MarcToUTF8Record($record, 'MARC21');
+  my ($new_record, $converted_from, $errors_arrayref) = C4::Charset::MarcToUTF8Record($record, 'NORMARC');
   # $new_record = C4::Charset::SetUTF8Flag($new_record);
 
   # Count the conversions
