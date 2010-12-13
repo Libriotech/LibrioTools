@@ -28,6 +28,7 @@ use MARC::File::USMARC;
 use MARC::File::XML;
 use String::Strip;
 use Encode;
+binmode STDOUT, ":utf8";
 
 use strict;
 
