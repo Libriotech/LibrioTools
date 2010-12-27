@@ -26,7 +26,7 @@ use Pod::Usage;
 use strict;
 
 # Get options
-my ($input_file, $dump, $missing, $valueof, $html, $verbose) = get_options();
+my ($input_file, $dump, $missing, $valueof, $html, $limit, $verbose) = get_options();
 
 # Check that the file exists
 if (!-e $input_file) {
@@ -70,6 +70,8 @@ my $count = 0;
 while ( my $record = $marcfile->next() ) {
 
 	$count++;
+
+        if ($limit && $count == $limit) { last; }
 
 	# Dump all the records in the file	
 	if ($dump) {
@@ -247,6 +249,7 @@ sub get_options {
   my $missing = '';
   my $valueof = '';
   my $html = '', 
+  my $limit = '', 
   my $verbose = '';
   my $help = '';
   
@@ -255,7 +258,8 @@ sub get_options {
     'dump'      => \$dump, 
     'missing=s' => \$missing,
     'valueof=s' => \$valueof,  
-    'html=s'    => \$html, 
+    'html=s'    => \$html,
+    'l|limit=i'    => \$limit,  
     'v|verbose' => \$verbose, 
 	'h|?|help'  => \$help
   );
@@ -263,7 +267,7 @@ sub get_options {
   pod2usage(-exitval => 0) if $help;
   pod2usage( -msg => "\nMissing Argument: -i, --infile required\n", -exitval => 1) if !$input_file;
 
-  return ($input_file, $dump, $missing, $valueof, $html, $verbose);
+  return ($input_file, $dump, $missing, $valueof, $html, $limit, $verbose);
 
 }
 
