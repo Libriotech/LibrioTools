@@ -42,8 +42,9 @@ if ($html && !-e $html) {
 # Configure the Template Toolkit
 my $config = {
     INCLUDE_PATH => 'tt2',  # or list ref
-    INTERPOLATE  => 1,               # expand "$var" in plain text
-    POST_CHOMP   => 0,               # cleanup whitespace 
+    INTERPOLATE  => 1,      # expand "$var" in plain text
+    POST_CHOMP   => 0,      # cleanup whitespace 
+    ENCODING => 'utf8'      # ensure correct encoding
 };
 # create Template object
 my $tt2 = Template->new($config) || die Template->error(), "\n";
@@ -211,7 +212,7 @@ sub valueof_output {
 	};
 	if ($html) {
 	  my $htmlfile = "$html/stats_valueof_$arg.html";
-		$tt2->process($template, $vars, $htmlfile) || die $tt2->error();
+		$tt2->process($template, $vars, $htmlfile, {binmode => ":utf8"}) || die $tt2->error();
 		print "Go have a look at $htmlfile. \n";
 	} else { 
 		$tt2->process($template, $vars) || die $tt2->error();
@@ -233,7 +234,7 @@ sub default_output {
 		'allowed_fields' => \%allowed_fields
 	};
 	if ($html) {
-		$tt2->process($template, $vars, "$html/stats_default.html") || die $tt2->error();
+		$tt2->process($template, $vars, "$html/stats_default.html", {binmode => ":utf8"}) || die $tt2->error();
 		print "Go have a look at $html/stats_default.html. \n";
 	} else { 
 		$tt2->process($template, $vars) || die $tt2->error();
