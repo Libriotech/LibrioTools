@@ -5,15 +5,25 @@
 use MARC::File::USMARC;
 use MARC::Record;
 use MARC::Field;
+use Getopt::Long;
+use Pod::Usage;
 use strict;
 use warnings;
 # use utf8;
 binmode STDOUT, ":utf8";
 
-my $filename = '/home/magnus/Dropbox/kunder/munkagard/import/2forsok/export2-ansel-ansi-2709-ejLinje-rettet';
+# Get options
+my ($input_file) = get_options();
+
+# Check that the file exists
+if (!-e $input_file) {
+  print "The file $input_file does not exist...\n";
+  exit;
+}
+
 my $count = 0;
 
-my $file = MARC::File::USMARC->in( $filename );
+my $file = MARC::File::USMARC->in( $input_file );
 while ( my $rec = $file->next() ) {
   
   my $new_rec = MARC::Record->new();
@@ -155,9 +165,46 @@ sub fix_data() {
 
 }
 
+sub get_options {
+
+  # Options
+  my $input_file = '';
+  my $help = '';
+  
+  GetOptions (
+    'i|infile=s' => \$input_file, 
+    'h|?|help'  => \$help
+  );
+
+  pod2usage(-exitval => 0) if $help;
+  pod2usage( -msg => "\nMissing Argument: -i, --infile required\n", -exitval => 1) if !$input_file;
+
+  return ($input_file);
+
+}
+
 __END__
 
-  # $data =~ s/\234\97/x/g; # å
-  # $data =~ s/\x{c3a5}/x/g;
-  # $data =~ s/êa/å/g;
-  # $data =~ s/µ/æ/g;
+=head1 NAME
+    
+stats.pl - Produce stats about a file containing MARC-records.
+        
+=head1 SYNOPSIS
+            
+./char-rec.pl -i records.mrc > fixed.mrc
+               
+=head1 OPTIONS
+              
+=over 4
+                                                   
+=item B<-i, --infile>
+
+Name of the MARC file to be read.
+
+=item B<-h, -?, --help>
+                                               
+Prints this help message and exits.
+
+=back
+                                                               
+=cut
