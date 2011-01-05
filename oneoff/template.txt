@@ -1,5 +1,8 @@
 #!/usr/bin/perl -w
 
+use MARC::File::USMARC;
+use MARC::Record;
+use MARC::Field;
 use Getopt::Long;
 use Pod::Usage;
 use strict;
