@@ -1,0 +1,73 @@
+#!/usr/bin/perl -w
+
+use Getopt::Long;
+use Pod::Usage;
+use strict;
+use warnings;
+binmode STDOUT, ":utf8";
+
+# Get options
+my ($input_file) = get_options();
+
+# Check that the file exists
+if (!-e $input_file) {
+  print "The file $input_file does not exist...\n";
+  exit;
+}
+
+my $count = 0;
+
+my $file = MARC::File::USMARC->in( $input_file );
+while ( my $rec = $file->next() ) {
+  
+  $count++;  
+}
+
+$file->close();
+undef $file;
+
+print "$count\n";
+
+sub get_options {
+
+  # Options
+  my $input_file = '';
+  my $help = '';
+  
+  GetOptions (
+    'i|infile=s' => \$input_file, 
+    'h|?|help'  => \$help
+  );
+
+  pod2usage(-exitval => 0) if $help;
+  pod2usage( -msg => "\nMissing Argument: -i, --infile required\n", -exitval => 1) if !$input_file;
+
+  return ($input_file);
+
+}
+
+__END__
+
+=head1 NAME
+    
+xyz.pl - Blah, blah
+        
+=head1 SYNOPSIS
+            
+./xyz.pl -i records.mrc > out.mrc
+               
+=head1 OPTIONS
+              
+=over 4
+
+=item B<-i, --infile>
+
+Name of the MARC file to be read.
+
+=item B<-h, -?, --help>
+                                               
+Prints this help message and exits.
+
+=back
+                                                               
+=cut
