@@ -132,7 +132,7 @@ sub fix_data() {
       $out .= pack("U", 0x00C4); # Ä
       $prevchar = '';
     } elsif ((ord($prevchar) == 232) && (ord($1) == 79)) {
-      $out .= pack("U", 0x00C5); # Ö
+      $out .= pack("U", 0x00D6); # Ö
       $prevchar = '';
     } elsif ((ord($prevchar) == 232) && (ord($1) == 97)) {
       $out .= pack("U", 0x00E4); # ä
