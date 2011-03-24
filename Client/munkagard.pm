@@ -189,7 +189,7 @@ sub client_transform {
 
     # o = Full call number 
     # This is stored in either 852c or 852h
-    if ($record->field('852') && ($record->field('852')->subfield('c') || $record->field('852')->subfield('h')) {
+    if ($record->field('852')) {
       if ($record->field('852')->subfield('c')) {
         $field952->add_subfields('o' => $record->field('852')->subfield('c'));
       } elsif ($record->field('852')->subfield('h')) {
