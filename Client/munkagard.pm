@@ -18,24 +18,10 @@ sub client_transform {
   # To be used in 942c and 952y
   # We will lc before comparing, so use lowercase in the keys
   my %item_types = (
-    'dvd'        => 'DVD', 
-    'tidsskrift' => 'TIDS', 
-    'bok'        => 'BOK', 
-    'rapport'    => 'BOK',
-    'hefte'      => 'BOK',
-    'småtrykk'   => 'BOK',
-    'tegneserie' => 'BOK',
-    'eng'        => 'BOK',
-    'kombidokument' => 'BOK',
-    'e-bok'      => 'EBOK', 
-    'lydopptak'  => 'LBOK', 
-    'vhs'        => 'VID', 
-    'videogram'  => 'VID', 
-    'video'      => 'VID', 
-    'elektronisk ressurs'  => 'DIG',
-    'dvd-rom'    => 'DIG',
-    'cd-rom'     => 'DIG', 
-    'maskinlesbar fil'  => 'DIG'
+    'musiktryck'             => 'MT', 
+    'ljudupptagning'         => 'LJ', 
+    'kartografiskt material' => 'MP', 
+    'ljudbok (cd)'           => 'LB'
   );
 
   my $record = shift;
@@ -50,14 +36,16 @@ sub client_transform {
 
   # c	Koha [default] item type
   # TODO
-  # if (my $field245h = lc($record->subfield('245', 'h'))) {
-  #   StripLTSpace($field245h);
-  #   if ($item_types{$field245h}) {
-  #     $field942->add_subfields('c' => $item_types{$field245h});
-  #   } else {
-  #     $field942->add_subfields('c' => 'X');	
-  #   }
-  # }
+  if (my $field245h = lc($record->subfield('245', 'h'))) {
+    StripLTSpace($field245h);
+    if ($item_types{$field245h}) {
+      $field942->add_subfields('c' => $item_types{$field245h});  
+    } else {
+      $field942->add_subfields('c' => 'BK');	
+    }
+  } else {
+    $field942->add_subfields('y' => 'BK');	
+  }
 
   # e	Edition
   # h	Classification part
@@ -231,14 +219,16 @@ sub client_transform {
     # coded value, required field for circulation 	 
     # Coded value, must be defined in System Administration > Item types and Circulation Codes
     # TODO is this information anywhere? 245h is only present in 10 records
-    # if (my $field245h = lc($record->subfield('245', 'h'))) {
-    #   StripLTSpace($field245h);
-    #   if ($item_types{$field245h}) {
-    # 	$field952->add_subfields('y' => $item_types{$field245h});
-    #   } else {
-    	$field952->add_subfields('y' => 'X');	
-    #   }
-    # }
+    if (my $field245h = lc($record->subfield('245', 'h'))) {
+      StripLTSpace($field245h);
+      if ($item_types{$field245h}) {
+    	$field952->add_subfields('y' => $item_types{$field245h});
+      } else {
+    	$field952->add_subfields('y' => 'BK');	
+      }
+    } else {
+      $field952->add_subfields('y' => 'BK');	
+    }
 
     # z = Public note
 
@@ -293,9 +283,13 @@ sub client_transform {
     # 6 = Koha normalized classification for sorting
 
     # 7 = Not for loan	
-    # NOT_LOAN
-    # 099q = Til internt bruk
-    # 099q = Kassert
+    # Status of the item, connect with the authorised values list 'NOT_LOAN'
+    # 099x Gallrad ('SCRAPPED')
+    if (my $field099x = $field099->subfield('x')) {
+      if ($field099x eq "SCRAPPED") {
+        $field952->add_subfields('7' => 3);
+      }
+    }
 
     # 8 = Collection code	
     # CCODE
