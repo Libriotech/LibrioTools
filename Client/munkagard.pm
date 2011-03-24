@@ -121,29 +121,8 @@ sub client_transform {
     # c = Shelving location
     # TODO
     # Coded value, matching Authorized Value category ('LOC' in default installation)
-    # LOC  	AV  	Audio Visual  	
-    # LOC 	CHILD 	Children's Area 
-    # LOC 	DISPLAY On Display 	  
-    # LOC 	FIC 	Fiction
-    # LOC 	GEN 	General Stacks
-    # LOC 	NEW 	New Materials Shelf
-    # LOC 	REF 	Reference
-    # LOC 	STAFF 	Staff Office
-    # LOC 	INT		Til intern bruk
-    # LOC 	BOKL 	SKSK Boklager
-    # $field952->add_subfields('c' => 'GEN');
-    # 099h = SKSK Boklager
-    # if (my $field099h = $field099->subfield('h')) {
-    #   if ($field099h eq 'SKSK Boklager') {
-    # 	$field952->update('c' => 'BOKL');
-    #   }
-    # }
-    # 099q = Til internt bruk
-    # if (my $field099q = $field099->subfield('q')) {
-    #   if ($field099q eq 'Til internt bruk') {
-    # 	$field952->update('c' => 'INT');
-    #   }
-    # }
+	# Add a simple, standard value for all records
+    $field952->add_subfields('c' => 'BIB');
 
     # d = Date acquired
     # Format of date: yyyy-mm-dd
