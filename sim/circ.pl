@@ -90,7 +90,7 @@ for ( my $i = 0; $i <= $j; $i++ ) {
   
     my $borrower = GetMember( 'cardnumber' => $cardnumber->{'cardnumber'} );
     if ($debug) { print "\$cardnumber ", Dumper $cardnumber; }
-    if ($debug) { print "\$borrower ", Dumper $borrower; }
+    if ($debug) { print "\$borrower ",   Dumper $borrower; }
 
     # From C4::Circulation::AddIssue():
     # $borrower is a hash with borrower informations (from GetMemberDetails).
@@ -100,6 +100,8 @@ for ( my $i = 0; $i <= $j; $i++ ) {
     # $issuedate is the date to issue the item in iso (YYYY-MM-DD) format (optional).
     # Defaults to today.  Unlike C<$datedue>, NOT a C4::Dates object, unfortunately.
     my $datedue = C4::Circulation::AddIssue($borrower, $barcode->{'barcode'}, undef, undef, $date, undef);
+    # This call results in this error: 
+    # Can't use an undefined value as a HASH reference at /home/magnus/scripts/kohanor32/C4/Circulation.pm line 1048.
 
     if ($verbose) { print "\tBorrowernumber: " . $borrower->{'borrowernumber'} . " Barcode: " . $barcode->{'barcode'} . " Duedate: " . $datedue . "\n"; }
 
