@@ -56,7 +56,7 @@ my @stop  = Today();
 my $j = Delta_Days(@start,@stop);
 
 # Prepare some statement handles
-my $get_borrowers_sth = $dbh->prepare("SELECT cardnumber FROM borrowers WHERE cardnumber IS NOT NULL ORDER BY RAND() LIMIT ?");
+my $get_borrowers_sth = $dbh->prepare("SELECT borrowernumber FROM borrowers WHERE cardnumber IS NOT NULL ORDER BY RAND() LIMIT ?");
 my $get_barcodes_sth  = $dbh->prepare("SELECT barcode FROM items WHERE onloan IS NULL ORDER BY RAND() LIMIT ?");
 
 DATES:
@@ -81,16 +81,16 @@ for ( my $i = 0; $i <= $j; $i++ ) {
 
   # Get the borrowernumbers
   $get_borrowers_sth->execute($issues_to_do);
-  while (my $cardnumber = $get_borrowers_sth->fetchrow_hashref()) {
+  while (my $borrowerid = $get_borrowers_sth->fetchrow_hashref()) {
     
     # Get the barcode of a random item that is not on loan
     $get_barcodes_sth->execute(1);
     my $barcode = $get_barcodes_sth->fetchrow_hashref();
     if ($debug) { print "\$barcode ", Dumper $barcode; }
   
-    my $borrower = GetMember( 'cardnumber' => $cardnumber->{'cardnumber'} );
-    if ($debug) { print "\$cardnumber ", Dumper $cardnumber; }
-    if ($debug) { print "\$borrower ",   Dumper $borrower; }
+    my $borrower = GetMemberDetails( $borrowerid->{'borrowernumber'}, 0 );
+    if ($debug) { print "\$borrowernumber ", Dumper $borrowerid; }
+    if ($debug) { print "\$borrower ",       Dumper $borrower; }
 
     # From C4::Circulation::AddIssue():
     # $borrower is a hash with borrower informations (from GetMemberDetails).
@@ -99,9 +99,7 @@ for ( my $i = 0; $i <= $j; $i++ ) {
     # $cancelreserve is 1 to override and cancel any pending reserves for the item (optional).
     # $issuedate is the date to issue the item in iso (YYYY-MM-DD) format (optional).
     # Defaults to today.  Unlike C<$datedue>, NOT a C4::Dates object, unfortunately.
-    my $datedue = C4::Circulation::AddIssue($borrower, $barcode->{'barcode'}, undef, undef, $date, undef);
-    # This call results in this error: 
-    # Can't use an undefined value as a HASH reference at /home/magnus/scripts/kohanor32/C4/Circulation.pm line 1048.
+    my $datedue = AddIssue($borrower, $barcode->{'barcode'}, undef, undef, $date);
 
     if ($verbose) { print "\tBorrowernumber: " . $borrower->{'borrowernumber'} . " Barcode: " . $barcode->{'barcode'} . " Duedate: " . $datedue . "\n"; }
 
