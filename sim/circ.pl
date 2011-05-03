@@ -24,7 +24,7 @@ use Getopt::Long;
 use Pod::Usage;
 use Data::Dumper;
 use strict;
-# use warnings;
+use warnings;
 # use diagnostics;
 
 ## get command line options
@@ -91,6 +91,10 @@ for ( my $i = 0; $i <= $j; $i++ ) {
     my $borrower = GetMemberDetails( $borrowerid->{'borrowernumber'}, 0 );
     if ($debug) { print "\$borrowernumber ", Dumper $borrowerid; }
     if ($debug) { print "\$borrower ",       Dumper $borrower; }
+
+    # AddIssue() accesses userenv so we need to create it
+    C4::Context->_new_userenv('dummy');
+    C4::Context::set_userenv(51, undef, undef, undef, undef, 'CPL', undef, undef, undef, undef);
 
     # From C4::Circulation::AddIssue():
     # $borrower is a hash with borrower informations (from GetMemberDetails).
