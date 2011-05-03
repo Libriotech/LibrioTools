@@ -94,6 +94,7 @@ for ( my $i = 0; $i <= $j; $i++ ) {
 
     # AddIssue() accesses userenv so we need to create it
     C4::Context->_new_userenv('dummy');
+    # FIXME Set "usernum" (= borrowernumber) and branch dynamically!
     C4::Context::set_userenv(51, undef, undef, undef, undef, 'CPL', undef, undef, undef, undef);
 
     # From C4::Circulation::AddIssue():
