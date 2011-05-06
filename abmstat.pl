@@ -23,11 +23,11 @@ my $config = {
 my $tt2 = Template->new($config) || die Template->error(), "\n";
 
 # Get command line options
-my ($homebranch, $verbose) = get_options();
+my ($homebranch, $year, $outfile, $verbose) = get_options();
 
 if ($verbose) {
 	print "This is abmstat.pl, running in verbose mode.\n";
-	print "Getting data for branch sksk.\n";
+	print "Getting data for branch $homebranch.\n";
 }
 
 # Get database connection
@@ -265,9 +265,8 @@ my $vars = {
 	'admin'       => \@admin,
 	'ill'         => \@ill
 };
-my $htmlfile = "/home/sksk/public_html/abmstats.html";
-$tt2->process($template, $vars, $htmlfile) || die $tt2->error();
-print "Go have a look at $htmlfile \n";
+$tt2->process($template, $vars, $outfile) || die $tt2->error();
+print "Go have a look at $outfile \n";
 
 # Takes a string of SQL and returns an integer
 sub get_value {
@@ -299,16 +298,21 @@ sub orify {
 # Get commandline options
 sub get_options {
   my $homebranch = '';
+  my $year = '';
+  my $outfile = '/tmp/abmstat.html';
   my $verbose = '';
   my $help = '';
 
   GetOptions("b|homebranch=s" => \$homebranch, 
-             "v|verbose!" => \$verbose,
-             'h|?|help'   => \$help
+             "y|year=i"       => \$year, 
+             'o|outfile=s'    => \$outfile, 
+             "v|verbose!"     => \$verbose,
+             'h|?|help'       => \$help
              );
   
   pod2usage(-exitval => 0) if $help;
   pod2usage( -msg => "\nMissing Argument: -b, --homebranch required\n", -exitval => 1) if !$homebranch;
+  pod2usage( -msg => "\nMissing Argument: -y, --year required\n", -exitval => 1) if !$year;
 
   return ($homebranch, $verbose);
 }       
@@ -318,10 +322,10 @@ __END__
 =head1 NAME
     
 abmstat.pl - Collect statistics for the Norwegian library authorities.
-        
+      
 =head1 SYNOPSIS
             
-abmstat.pl > stats.html
+abmstat.pl -b mybranch -y 2011
                
 =head1 OPTIONS
               
@@ -330,15 +334,23 @@ abmstat.pl > stats.html
 =item B<-b, --homebranch>
 
 Restrict results to one branch. 
-                                                   
+
+=item B<-y --year>
+
+What year to get the stats for. 
+
+=item B<-o --outfile>
+
+File to write the results to
+              
 =item B<-v, --verbose>
 
 Run in verbose mode, with extra output. 
 
 =item B<-h, -?, --help>
-                                               
+
 Prints this help message and exits.
 
 =back
-                                                               
+
 =cut
