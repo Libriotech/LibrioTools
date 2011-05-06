@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>ABM-statistikk</title>
+<title>ABM-statistikk for [% year %]</title>
 <style type="text/css">
 html {
 	font-family: sans-serif;	
@@ -16,14 +16,14 @@ html {
 </head>
 <body>
 
-<h1>ABM-statistikk</h1>
+<h1>ABM-statistikk for [% year %]</h1>
 
 <h2>Samlinger</h2>
 
 <h3>Antall fysiske og digitale enheter</h3>
 
 <table>
-<tr><th></th><th>Bestand pr. 31.12</th><th></th><th>Tilvekst i 2009</th><th></th><th>Avgang i 2009</th><th></th></tr>
+<tr><th></th><th>Bestand pr. 31.12.[% year %]</th><th></th><th>Tilvekst i [% year %]</th><th></th><th>Avgang i [% year %]</th><th></th></tr>
 [% FOREACH itype IN holdings %]
 <tr><td title="Dokumenttype(r): [% itype.itypes %]">[% itype.name %]</td>
     <td class="result">[% itype.holdings %]</td><td class="field">[% itype.holdings_n %]</td>
@@ -36,7 +36,7 @@ html {
 <h3>Tidsskrifter</h3>
 
 <table>
-<tr><th></th><th>Bestand pr. 31.12</th><th></th><th>Tilvekst i 2009</th><th></th><th>Avgang i 2009</th><th></th></tr>
+<tr><th></th><th>Bestand pr. 31.12.[% year %]</th><th></th><th>Tilvekst i [% year %]</th><th></th><th>Avgang i [% year %]</th><th></th></tr>
 [% FOREACH p IN periodicals %]
 <tr><td>[% p.name %]</td>
     <td class="result">[% p.holdings %]</td><td class="field">[% p.holdings_n %]</td>

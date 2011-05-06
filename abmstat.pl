@@ -56,11 +56,11 @@ my @itemtypes = ({
 	name       => 'Annet bibliotekmateriale',
 	itypes     => ["X"],
 	holdings   => 0,
-	holdings_n => '023',
+	holdings_n => '035',
 	added      => 0,
-	added_n    => '024',
+	added_n    => '036',
 	deleted    => 0, 
-	deleted_n  => '025'
+	deleted_n  => '037'
 }, 	{
 	name       => 'Andre digitale dokumenter',
 	itypes     => ["DIG"],
@@ -79,7 +79,7 @@ for (my $i=0; $i < $count; $i++) {
 	# Holdings
 	my $hold_query = "SELECT count(biblionumber)
 					FROM items 
-					WHERE YEAR(dateaccessioned) < 2010
+					WHERE YEAR(dateaccessioned) = $year
 					AND homebranch = '" . $homebranch . "'
 					AND " . orify('itype', @{$itemtypes[$i]{'itypes'}});
 	my $hold_sth = $dbh->prepare($hold_query);
@@ -90,7 +90,7 @@ for (my $i=0; $i < $count; $i++) {
 	# Additions
 	my $acq_query = "SELECT count(biblionumber)
 					FROM items 
-					WHERE YEAR(dateaccessioned) = 2009
+					WHERE YEAR(dateaccessioned) = $year
 					AND homebranch = '" . $homebranch . "'
 					AND " . orify('itype', @{$itemtypes[$i]{'itypes'}});
 	my $acq_sth = $dbh->prepare($acq_query);
@@ -102,7 +102,7 @@ for (my $i=0; $i < $count; $i++) {
 	# Deletions
 	my $del_query = "SELECT count(itemnumber) 
 	                 FROM deleteditems
-	                 WHERE YEAR(timestamp) = 2009 
+	                 WHERE YEAR(timestamp) = $year 
 	                 AND homebranch = '" . $homebranch . "'
 					 AND " . orify('itype', @{$itemtypes[$i]{'itypes'}});
 	my $del_sth = $dbh->prepare($del_query);
@@ -185,8 +185,7 @@ for (my $i=0; $i < $circ_count; $i++) {
 		WHERE s.borrowernumber = b.borrowernumber 
 		AND s.branch = '" . $homebranch . "' 
 		AND type = '" . $circ[$i]{'type'} . "'
-		AND YEAR(s.datetime) = 2009 
-		AND DATE(s.datetime) > '2009-10-22'
+		AND YEAR(s.datetime) = $year 
 		AND " . orify('b.categorycode', @{$circ[$i]{'internal_sql'}})
 	);
 	$circ[$i]{'external'} = get_value(
@@ -195,8 +194,7 @@ for (my $i=0; $i < $circ_count; $i++) {
 		WHERE s.borrowernumber = b.borrowernumber 
 		AND s.branch = '" . $homebranch . "' 
 		AND type = '" . $circ[$i]{'type'} . "'
-		AND YEAR(s.datetime) = 2009 
-		AND DATE(s.datetime) > '2009-10-22' 
+		AND YEAR(s.datetime) = $year 
 		AND " . orify('b.categorycode', @{$circ[$i]{'external_sql'}})
 	);
 	
@@ -216,24 +214,22 @@ my $ill_total = get_value("SELECT count(*)
 							WHERE s.borrowernumber = b.borrowernumber 
 							AND s.branch = 'sksk' 
 							AND type = 'issue' 
-							AND YEAR(s.datetime) = 2009 
-							AND DATE(s.datetime) > '2009-10-22' 
+							AND YEAR(s.datetime) = $year
 							AND b.categorycode = 'BIBLIOTEK'");
 my $ill_domestic = get_value("SELECT count(*) 
 							FROM statistics as s, borrowers as b 
 							WHERE s.borrowernumber = b.borrowernumber 
 							AND s.branch = 'sksk' 
 							AND type = 'issue' 
-							AND YEAR(s.datetime) = 2009 
-							AND DATE(s.datetime) > '2009-10-22' 
+							AND YEAR(s.datetime) = $year
 							AND b.categorycode = 'BIBLIOTEK' 
 							AND (b.country = 'Norge' OR b.country = '')");
 
 my @ill = ({
 	name      => "Utsendte originaldokumenter", 
-	dom_n     => '095', 
+	dom_n     => '089', 
 	dom_value => $ill_domestic, 
-	int_n     => '096', 
+	int_n     => '090', 
 	int_value => $ill_total - $ill_domestic
 });
 
@@ -247,7 +243,7 @@ my @admin = ({
 }, {
 	name  => 'Antall aktive lånere i reapporteringsåret',
 	n     => '006', 
-	sql   => "SELECT COUNT(DISTINCT borrowernumber) FROM statistics WHERE DATE(datetime) > '2009-10-22'", 
+	sql   => "SELECT COUNT(DISTINCT borrowernumber) FROM statistics WHERE YEAR(datetime) > $year", 
 	value => 0
 });
 
@@ -259,6 +255,7 @@ for (my $i=0; $i < $admin_count; $i++) {
 # Output
 my $template = 'abmstat.tt2';
 my $vars = {
+        'year'        => $year, 
 	'holdings'    => \@itemtypes,
 	'periodicals' => \@peri, 
 	'circ'        => \@circ,
@@ -314,7 +311,7 @@ sub get_options {
   pod2usage( -msg => "\nMissing Argument: -b, --homebranch required\n", -exitval => 1) if !$homebranch;
   pod2usage( -msg => "\nMissing Argument: -y, --year required\n", -exitval => 1) if !$year;
 
-  return ($homebranch, $verbose);
+  return ($homebranch, $year, $outfile, $verbose);
 }       
 
 __END__
