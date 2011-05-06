@@ -79,7 +79,6 @@ for (my $i=0; $i < $count; $i++) {
 	# Holdings
 	my $hold_query = "SELECT count(biblionumber)
 					FROM items 
-					-- WHERE YEAR(dateaccessioned) = $year
 					AND homebranch = '" . $homebranch . "'
 					AND " . orify('itype', @{$itemtypes[$i]{'itypes'}});
 	my $hold_sth = $dbh->prepare($hold_query);
