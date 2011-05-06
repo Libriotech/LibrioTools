@@ -77,6 +77,8 @@ my $count = scalar(@itemtypes);
 for (my $i=0; $i < $count; $i++) {
 
 	# Holdings
+        # FIXME This actually gives us the status of holdings right now, not at the end of the given year
+        # It could be done with this number minus the number of additions since the end of the given year..
 	my $hold_query = "SELECT count(biblionumber)
 					FROM items 
 					WHERE homebranch = '" . $homebranch . "'
