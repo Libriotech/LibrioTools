@@ -79,7 +79,7 @@ for (my $i=0; $i < $count; $i++) {
 	# Holdings
 	my $hold_query = "SELECT count(biblionumber)
 					FROM items 
-					AND homebranch = '" . $homebranch . "'
+					WHERE homebranch = '" . $homebranch . "'
 					AND " . orify('itype', @{$itemtypes[$i]{'itypes'}});
 	my $hold_sth = $dbh->prepare($hold_query);
 	$hold_sth->execute();
