@@ -46,14 +46,14 @@ my $count = 0;
 @surnames   = shuffle(@surnames);
 
 SURNAME:
-foreach my $surname (@surnames) {
+foreach my $firstname (@firstnames) {
 
-  chomp($surname);
+  chomp($firstname);
 
   FIRSTNAME:
-  foreach my $firstname (@firstnames) {
+  foreach my $surname (@surnames) {
 
-    chomp($firstname);
+    chomp($surname);
 
     # Build information about this patron
     my %patron;
