@@ -16,8 +16,10 @@
 # along with this file; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+use C4::Biblio;
 use C4::Circulation;
 use C4::Context;
+use C4::Items;
 use C4::Members;
 use Date::Calc qw( Add_Delta_Days Day_of_Week Delta_Days Today );
 use Getopt::Long;
@@ -28,22 +30,48 @@ use warnings;
 # use diagnostics;
 
 ## get command line options
-my ($from, $max, $min, $returns_after, $verbose, $debug) = get_options();
+my ($from, $max, $min, $returns_after, $zap, $verbose, $debug) = get_options();
+
+# Connect to database
+my $dbh   = C4::Context->dbh();
+
+# Zap - return all on loan items and exit
+if ($zap) {
+  my $get_onloan_sth    = $dbh->prepare("SELECT borrowernumber, itemnumber FROM issues");
+  $get_onloan_sth->execute();
+  while (my ($borrowernumber, $itemnumber) = $get_onloan_sth->fetchrow_array()) {
+    # MarkIssueReturned($borrowernumber, $itemnumber, $dropbox_branch, $returndate, $privacy);
+    MarkIssueReturned($borrowernumber, $itemnumber, undef, undef, 1);
+    # MarkIssueReturned only works on the issues table, we need ModItem to change items.onloan
+    ModItem({ onloan => undef }, GetBiblionumberFromItemnumber($itemnumber), $itemnumber);
+    if ($verbose) { print "\tRETURN Borrowernumber: " . $borrowernumber . " Barcode: " . $itemnumber . "\n"; }
+  }
+  exit;
+}
+
 print "\nStarting circ.pl\nSettings:\n"      if $verbose;
 print "Simulating circulations from $from\n" if $verbose;
 print "Min number of issues per day: $min\n" if $verbose;
 print "Max number of issues per day: $max\n" if $verbose;
 
 # Number of returns to do per day, average of $min and $max
-my $number_of_returns = ($max + $min) / 2;
-
-my $dbh   = C4::Context->dbh();
+# FIXME Make sure this is an integer
+my $returns_to_do = ($max + $min) / 2;
 
 # Do some checks on the database
 my $barcodes_sth   = $dbh->prepare("SELECT count(*) as count FROM items WHERE barcode != ''");
 $barcodes_sth->execute();
 my $num_barcodes = $barcodes_sth->fetchrow_hashref()->{count};
 print "Number of items with barcodes: " . $num_barcodes . "\n";
+
+my $onloan_sth   = $dbh->prepare("SELECT count(*) as count FROM items WHERE onloan IS NOT NULL");
+$onloan_sth->execute();
+my $num_onloan = $onloan_sth->fetchrow_hashref()->{count};
+print "Number of items on loan: " . $num_onloan . "\n";
+
+if ($num_barcodes == $num_onloan) {
+  die "All items with barcodes are on loan!";
+}
 
 my $borrowers_sth   = $dbh->prepare("SELECT count(*) as count FROM borrowers");
 $borrowers_sth->execute();
@@ -57,7 +85,8 @@ my $j = Delta_Days(@start,@stop);
 
 # Prepare some statement handles
 my $get_borrowers_sth = $dbh->prepare("SELECT borrowernumber FROM borrowers WHERE cardnumber IS NOT NULL ORDER BY RAND() LIMIT ?");
-my $get_barcodes_sth  = $dbh->prepare("SELECT barcode FROM items WHERE onloan IS NULL ORDER BY RAND() LIMIT ?");
+my $get_barcodes_sth  = $dbh->prepare("SELECT barcode FROM items WHERE onloan IS NULL AND barcode IS NOT NULL ORDER BY RAND() LIMIT ?");
+my $get_onloan_sth    = $dbh->prepare("SELECT borrowernumber, itemnumber FROM issues ORDER BY RAND() LIMIT ?");
 
 DATES:
 for ( my $i = 0; $i <= $j; $i++ ) {
@@ -106,15 +135,24 @@ for ( my $i = 0; $i <= $j; $i++ ) {
     # Defaults to today.  Unlike C<$datedue>, NOT a C4::Dates object, unfortunately.
     my $datedue = AddIssue($borrower, $barcode->{'barcode'}, undef, undef, $date);
 
-    if ($verbose) { print "\tBorrowernumber: " . $borrower->{'borrowernumber'} . " Barcode: " . $barcode->{'barcode'} . " Duedate: " . $datedue->output('iso') . "\n"; }
+    if ($verbose) { print "\tISSUE Borrowernumber: " . $borrower->{'borrowernumber'} . " Barcode: " . $barcode->{'barcode'} . " Duedate: " . $datedue->output('iso') . "\n"; }
 
   }
 
   if ($i > $returns_after) {
     # Do returns
+    $get_onloan_sth->execute($returns_to_do);
+    while (my ($borrowernumber, $itemnumber) = $get_onloan_sth->fetchrow_array()) {
+      # MarkIssueReturned($borrowernumber, $itemnumber, $dropbox_branch, $returndate, $privacy);
+      MarkIssueReturned($borrowernumber, $itemnumber, undef, $date, 1);
+      # MarkIssueReturned only works on the issues table, we need ModItem to change items.onloan
+      # TODO The same things are done for zap at the top of the script - refactor into sub
+      ModItem({ onloan => undef }, GetBiblionumberFromItemnumber($itemnumber), $itemnumber);
+      if ($verbose) { print "\tRETURN Borrowernumber: " . $borrowernumber . " Barcode: " . $itemnumber . "\n"; }
+    }
   }
 
-  if ($verbose) { print_status(); }
+  if ($verbose) { print "\t"; print_status(); print "\n"; }
 
 }
 
@@ -141,6 +179,7 @@ sub get_options {
   my $max           = '';
   my $min           = '';
   my $returns_after = 0,
+  my $zap           = '';
   my $verbose       = '';
   my $debug         = '';
   my $help          = '';
@@ -149,17 +188,20 @@ sub get_options {
              "x|max=i"     => \$max, 
              "n|min=i"     => \$min,
              "r|returns=i" => \$returns_after, 
+             "z|zap"       => \$zap, 
              "v|verbose"   => \$verbose,
              "d|debug"     => \$debug, 
              "h|help"      => \$help, 
              );
   
   pod2usage(-exitval => 0) if $help;
-  pod2usage( -msg => "\nMissing Argument: -f, --from required\n", -exitval => 1) if !$from;
-  pod2usage( -msg => "\nMissing Argument: -x, --max required\n", -exitval => 1) if !$max;
-  pod2usage( -msg => "\nMissing Argument: -n, --min required\n", -exitval => 1) if !$min;
+  if (!$zap) {
+    pod2usage( -msg => "\nMissing Argument: -f, --from required\n", -exitval => 1) if !$from;
+    pod2usage( -msg => "\nMissing Argument: -x, --max required\n", -exitval => 1) if !$max;
+    pod2usage( -msg => "\nMissing Argument: -n, --min required\n", -exitval => 1) if !$min;
+  }
 
-  return ($from, $max, $min, $returns_after, $verbose, $debug);
+  return ($from, $max, $min, $returns_after, $zap, $verbose, $debug);
 }       
 
 __END__
@@ -193,6 +235,10 @@ Maximum number of issues to do in a day
 =item B<-r, --returns>
 
 Wait this many days before starting to do returns. Number of returns per day will be average of --min and --max. 
+
+=item B<-z, --zap>
+
+Return all on loan items and exit.  
 
 =item B<-v, --verbose>
 
