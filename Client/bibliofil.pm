@@ -182,7 +182,7 @@ sub client_transform {
 		# max 20 characters 
 		# FIXME Make this less inefficient by not doing once for every item
 		my $field001 = $record->field('001')->data();
-		my $titlenumber = substr $field001, 0, 6;
+		my $titlenumber = substr $field001, 0, 7;
 		# Assemble the barcode
 		$field952->add_subfields('p' => '03011' . $titlenumber . $itemcounter);
 
