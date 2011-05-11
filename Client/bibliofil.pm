@@ -185,7 +185,6 @@ sub client_transform {
 		my $titlenumber = substr $field001, 0, 6;
 		# Assemble the barcode
 		$field952->add_subfields('p' => '03011' . $titlenumber . $itemcounter);
-		$itemcounter++;
 
   		# q = Checked out
   
@@ -194,9 +193,11 @@ sub client_transform {
   		# s = Date last checked out	
   
   		# t = Copy number	
-		if ($titlenumber) {
-	    		$field952->add_subfields('t' => $field099b);
+		if ($itemcounter) {
+	    		$field952->add_subfields('t' => $itemcounter);
 		}
+
+		$itemcounter++;
   
   		# u = Uniform Resource Identifier	
   
