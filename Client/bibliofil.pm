@@ -53,8 +53,8 @@ sub client_transform {
 	
 	# k	Call number prefix
 	if ($record->field('090') && $record->field('090')->subfield('c')) {
-		my $field096c = $record->field('090')->subfield('c');
-		$field942->add_subfields('k' => $field096a); 
+		my $field090c = $record->field('090')->subfield('c');
+		$field942->add_subfields('k' => $field090c); 
 	}
 	# m	Call number suffix
 	if ($record->field('090') && $record->field('090')->subfield('d')) {
