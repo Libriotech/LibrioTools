@@ -22,6 +22,7 @@ use C4::Context;
 use C4::Items;
 use C4::Members;
 use Date::Calc qw( Add_Delta_Days Day_of_Week Delta_Days Today );
+use YAML::Tiny;
 use Getopt::Long;
 use Pod::Usage;
 use Data::Dumper;
@@ -30,7 +31,17 @@ use warnings;
 # use diagnostics;
 
 ## get command line options
-my ($from, $max, $min, $returns_after, $zap, $verbose, $debug) = get_options();
+my ($from, $config, $returns_after, $zap, $verbose, $debug) = get_options();
+
+# Open the config
+my $yaml = YAML::Tiny->new;
+if (-e $config) {
+  $yaml = YAML::Tiny->read($config);
+} else {
+  die "Could not find $config\n";
+}
+my $min = $yaml->[0]->{'min_issues_per_day'};
+my $max = $yaml->[0]->{'max_issues_per_day'};
 
 # Connect to database
 my $dbh   = C4::Context->dbh();
@@ -176,8 +187,7 @@ sub print_status {
 # Get commandline options
 sub get_options {
   my $from          = '';
-  my $max           = '';
-  my $min           = '';
+  my $config        = '';
   my $returns_after = 0,
   my $zap           = '';
   my $verbose       = '';
@@ -185,8 +195,7 @@ sub get_options {
   my $help          = '';
 
   GetOptions("f|from=s"    => \$from,
-             "x|max=i"     => \$max, 
-             "n|min=i"     => \$min,
+             "c|config=s"  => \$config, 
              "r|returns=i" => \$returns_after, 
              "z|zap"       => \$zap, 
              "v|verbose"   => \$verbose,
@@ -197,11 +206,10 @@ sub get_options {
   pod2usage(-exitval => 0) if $help;
   if (!$zap) {
     pod2usage( -msg => "\nMissing Argument: -f, --from required\n", -exitval => 1) if !$from;
-    pod2usage( -msg => "\nMissing Argument: -x, --max required\n", -exitval => 1) if !$max;
-    pod2usage( -msg => "\nMissing Argument: -n, --min required\n", -exitval => 1) if !$min;
+    pod2usage( -msg => "\nMissing Argument: -c, --config required\n", -exitval => 1) if !$config;
   }
 
-  return ($from, $max, $min, $returns_after, $zap, $verbose, $debug);
+  return ($from, $config, $returns_after, $zap, $verbose, $debug);
 }       
 
 __END__
@@ -224,13 +232,9 @@ Please note: Environment variables for an actual installation of Koha must be se
 
 The first day to do simulations on. Iterates through all days to the present
 
-=item B<-n, --min>
+=item B<-c, --config>
 
-Minimum number of issues to do in a day
-
-=item B<-x, --max>
-
-Maximum number of issues to do in a day
+Path to configuration file (in YAML format). 
 
 =item B<-r, --returns>
 
