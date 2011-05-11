@@ -1,5 +1,11 @@
 ---
 
+# Common for both branchcodes and patroncategories: 
+# If you want one branch to have more borrowers then the others, add it multiple times to 
+# the list multiple times. In this example, CPL is represented three times and FFL and FRL
+# one time each. This means that CPL will have about three times as many patrons as either 
+# one of FFL and FRL. The same goes for patroncategories. 
+
 branchcodes: 
 - CPL
 - CPL
