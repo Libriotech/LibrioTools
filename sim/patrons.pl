@@ -45,7 +45,8 @@ if (-e $config) {
 } else {
   die "Could not find $config\n";
 }
-
+my $branchcodes      = $yaml->[0]->{branchcodes};
+my $patroncategories = $yaml->[0]->{patroncategories};
 
 my @firstnames = read_file('firstnames.txt');
 my @surnames   = read_file('surnames.txt');
@@ -70,8 +71,8 @@ foreach my $firstname (@firstnames) {
     $patron{'firstname'}    = $firstname; 
     $patron{'surname'}      = $surname;
     $patron{'cardnumber'}   = fixup_cardnumber(undef);
-    $patron{'categorycode'} = $categorycode;
-    $patron{'branchcode'}   = $branchcode;
+    $patron{'categorycode'} = $patroncategories->[int rand @{$patroncategories}];
+    $patron{'branchcode'}   = $branchcodes->[int rand @{$branchcodes}];
     # Set userid for logging into OPAC equal to cardnumber
     $patron{'userid'}       = $patron{'cardnumber'}; 
     # Make everyone's password 'pass'
@@ -106,7 +107,7 @@ sub get_options {
   my $help    = '';
 
   GetOptions("n|limit=i"  => \$limit,
-             "c|config=s" => \$categorycode,
+             "c|config=s" => \$config,
              "v|verbose"  => \$verbose,
              "d|debug"    => \$debug,
              "h|help"     => \$help,
