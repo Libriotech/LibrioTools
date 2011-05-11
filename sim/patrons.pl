@@ -30,12 +30,22 @@ use C4::Context;
 use C4::Members;
 use File::Slurp;
 use List::Util 'shuffle';
+use YAML::Tiny;
 use Getopt::Long;
 use Pod::Usage;
 use Data::Dumper;
 # use strict;
 
-my ($limit, $categorycode, $branchcode, $verbose, $debug) = get_options();
+my ($limit, $config, $verbose, $debug) = get_options();
+
+# Open the config
+my $yaml = YAML::Tiny->new;
+if (-e $config) {
+  $yaml = YAML::Tiny->read($config);
+} else {
+  die "Could not find $config\n";
+}
+
 
 my @firstnames = read_file('firstnames.txt');
 my @surnames   = read_file('surnames.txt');
@@ -89,27 +99,24 @@ print "$count names generated.\n";
 
 # Get commandline options
 sub get_options {
-  my $limit        = 0;
-  my $categorycode = '';
-  my $branchcode   = '';
-  my $verbose      = '';
-  my $debug        = '';
-  my $help         = '';
+  my $limit   = 0;
+  my $config  = '';
+  my $verbose = '';
+  my $debug   = '';
+  my $help    = '';
 
-  GetOptions("n|limit=i"    => \$limit,
-             "c|category=s" => \$categorycode,
-             "b|branch=s"   => \$branchcode,
-             "v|verbose"    => \$verbose,
-             "d|debug"      => \$debug,
-             "h|help"       => \$help,
+  GetOptions("n|limit=i"  => \$limit,
+             "c|config=s" => \$categorycode,
+             "v|verbose"  => \$verbose,
+             "d|debug"    => \$debug,
+             "h|help"     => \$help,
              );
   
   pod2usage(-exitval => 0) if $help;
   pod2usage( -msg => "\nMissing Argument: -n, --limit required\n", -exitval => 1) if !$limit;
-  pod2usage( -msg => "\nMissing Argument: -c, --category required\n", -exitval => 1) if !$categorycode;
-  pod2usage( -msg => "\nMissing Argument: -b, --branch required\n", -exitval => 1) if !$branchcode;
+  pod2usage( -msg => "\nMissing Argument: -c, --config required\n", -exitval => 1) if !$config;
 
-  return ($limit, $categorycode, $branchcode, $verbose, $debug);
+  return ($limit, $config, $verbose, $debug);
 }       
 
 __END__
@@ -120,7 +127,7 @@ patrons.pl - Generate patrons from lists of first and last names.
         
 =head1 SYNOPSIS
             
-patrons.pl -l 5000 -c PT -b CPL
+patrons.pl -l 5000 -c myconfig.yaml
 
 Please note: Environment variables for an actual installation of Koha must be set for this script to communicate with Koha and work properly.
 
@@ -134,13 +141,9 @@ WARNING: This script WILL modify your database, do not run it against an install
 
 Max number of patrons to generate. 
 
-=item B<-c, --category>
+=item B<-c, --config>
 
-Categorycode for the patrons. 
-
-=item B<-b, --branch>
-
-Branchcode for the patrons. 
+Path to config file in YAML format. 
 
 =item B<-v, --verbose>
 
