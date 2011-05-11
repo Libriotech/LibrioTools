@@ -40,8 +40,8 @@ if (-e $config) {
 } else {
   die "Could not find $config\n";
 }
-my $min = $yaml->[0]->{'min_issues_per_day'};
-my $max = $yaml->[0]->{'max_issues_per_day'};
+my $min = $yaml->[0]->{min_issues_per_day};
+my $max = $yaml->[0]->{max_issues_per_day};
 
 # Connect to database
 my $dbh   = C4::Context->dbh();

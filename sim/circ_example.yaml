@@ -1,4 +1,49 @@
 ---
 
+# This is a sample config file for circ.pl
+
+# Per user - Not implemented yet! 
+# Max number of issues a borrower should make in one day
+max_issues_per_day_per_borrower: 15
+min_issues_per_day_per_borrower: 1
+
+# Maximum and minimum issues that should be made in a day
+# This should account for your daily averages, and can be 
+# modified based on week of the year and/or day of the
+# week with the settings further down in this file
+
 min_issues_per_day: 3
 max_issues_per_day: 7
+
+# Weeks - Not implemented yet! 
+# If there are weeks where you want the number of issues to 
+# be different than the average max and mins defined above
+# you can list them here, along with a change in number of
+# issues given as a percentage. If you want a busy week with
+# twice the number of issues you give it a percentage of 200
+# and a slow week with half the number of issues gets a 
+# percentage of 50. 
+# You only need to list the weeks that should differ from 
+# the average here! 
+
+weeks: 
+- 1: 75
+- 9: 75
+- 12: 150
+- 13: 175
+- 14: 200
+- 15: 75
+- 24: 10
+- 25: 10
+- 52: 10
+
+# Days - Not implemented yet
+# This works similar to weeks, slow days of the week get
+# a low percentage (below 100), weeks with more issues than
+# average get a high percentage (above 100). Only days that
+# should differ from the average need to be listed here. 
+
+days: 
+- wednesday: 120
+- friday: 80
+- sunday: 0
