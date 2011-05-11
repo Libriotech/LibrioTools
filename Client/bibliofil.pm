@@ -180,11 +180,12 @@ sub client_transform {
 		
 		# p = Barcode
 		# max 20 characters 
-		# FIXME Make this less inefficient by not doing once for every item
+		# FIXME Make this less inefficient by not doing it once for every item
 		my $field001 = $record->field('001')->data();
+		# Get the 7 first difits from 001
 		my $titlenumber = substr $field001, 0, 7;
-		# Assemble the barcode
-		$field952->add_subfields('p' => '03011' . $titlenumber . $itemcounter);
+		# Assemble the barcode - pad $itemcounter with up to two leading zeros
+		$field952->add_subfields('p' => '03011' . $titlenumber . sprintf("%02d", $itemcounter));
 
   		# q = Checked out
   
