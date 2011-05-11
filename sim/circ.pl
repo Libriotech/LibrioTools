@@ -76,7 +76,7 @@ if ($num_barcodes == $num_onloan) {
 my $borrowers_sth   = $dbh->prepare("SELECT count(*) as count FROM borrowers");
 $borrowers_sth->execute();
 my $borrowers_num = $borrowers_sth->fetchrow_hashref()->{count};
-print "Number of patrons: " . $borrowers_num . "\n";
+print "Number of patrons: " . $borrowers_num . "\n\n";
 
 # Iterate through all the dates
 my @start = split /-/, $from;
@@ -135,7 +135,7 @@ for ( my $i = 0; $i <= $j; $i++ ) {
     # Defaults to today.  Unlike C<$datedue>, NOT a C4::Dates object, unfortunately.
     my $datedue = AddIssue($borrower, $barcode->{'barcode'}, undef, undef, $date);
 
-    if ($verbose) { print "\tISSUE Borrowernumber: " . $borrower->{'borrowernumber'} . " Barcode: " . $barcode->{'barcode'} . " Duedate: " . $datedue->output('iso') . "\n"; }
+    if ($verbose) { print "\tISSUE  Borrowernumber: " . $borrower->{'borrowernumber'} . " Barcode: " . $barcode->{'barcode'} . " Duedate: " . $datedue->output('iso') . "\n"; }
 
   }
 
