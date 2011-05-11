@@ -176,7 +176,7 @@ sub client_transform {
 			$secondpart = ' ' . $record->field('090')->subfield('d');
 		}
 		# Assemble the call number
-		$field952->add_subfields('o' => $firstpart . $seconpart);
+		$field952->add_subfields('o' => $firstpart . $secondpart);
 		
 		# p = Barcode
 		# max 20 characters 
