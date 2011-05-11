@@ -100,7 +100,7 @@ for ( my $i = 0; $i <= $j; $i++ ) {
   # Skip sundays
   # TODO Turn this into an option
   if (Day_of_Week(@date) == 7) {
-    print "$date Skipping Sunday\n";
+    print "$date Skipping Sunday\n\n";
     next;
   }
 
