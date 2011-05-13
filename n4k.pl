@@ -28,7 +28,7 @@ use MARC::File::USMARC;
 use MARC::File::XML;
 use String::Strip;
 use Encode;
-binmode STDOUT, ":utf8";
+# binmode STDOUT, ":utf8";
 
 use strict;
 
@@ -68,6 +68,13 @@ while (my $record = $batch->next()) {
 	# TRANSFORM
 
  	$record = client_transform($record);
+
+	# client_transform might have rejected the record, so we need to 
+	# check what we got back, and skip to the next record if it was 
+	# rejected
+	if (!$record) {
+		next;
+	}
 
 	# OUTPUT
 	
