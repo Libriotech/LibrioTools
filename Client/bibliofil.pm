@@ -191,7 +191,7 @@ sub client_transform {
 		my $field001 = $record->field('001')->data();
 		my $titlenumber = substr $field001, 0, 7;
 		# Assemble the barcode
-		$field952->add_subfields('p' => '03011' . $titlenumber . printf("%02d", $itemcounter));
+		$field952->add_subfields('p' => '03011' . $titlenumber . sprintf("%03d", $itemcounter));
 
   		# q = Checked out
   
