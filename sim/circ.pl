@@ -21,7 +21,7 @@ use C4::Circulation;
 use C4::Context;
 use C4::Items;
 use C4::Members;
-use Date::Calc qw( Add_Delta_Days Day_of_Week Delta_Days Today Week_Number );
+use Date::Calc qw( Add_Delta_Days Day_of_Week Day_of_Week_to_Text Delta_Days Today Week_Number );
 use YAML::Tiny;
 use Getopt::Long;
 use Pod::Usage;
@@ -115,13 +115,6 @@ for ( my $i = 0; $i <= $j; $i++ ) {
   }
   my $date = $year . "-" . $month_pad . "-" . $day_pad;
 
-  # Skip sundays
-  # TODO Turn this into an option
-  if (Day_of_Week(@date) == 7) {
-    if ($verbose) { print "Day #$i $date Skipping Sunday\n\n"; }
-    next;
-  }
-
   # Find the number of issues we want to do, in 3 steps: 
   my $current_min = 0;
   my $current_max = 0;
@@ -132,10 +125,17 @@ for ( my $i = 0; $i <= $j; $i++ ) {
     my $ratio = $yaml->[0]->{weeks}->{$week_number};
     $current_min = int ( ( $min * $ratio ) / 100 );
     $current_max = int ( ( $max * $ratio ) / 100 );
-    if ($verbose) { print "Altering based on week number $week_number: min = $current_min, max = $current_max\n"; }
+    if ($verbose) { print "Altering min/max based on week #$week_number: min = $current_min, max = $current_max\n"; }
   }
   
-  # Should we alter the default based on the day of the week?
+  # 2. Should we alter the default based on the day of the week?
+  my $day_of_week = lc Day_of_Week_to_Text(Day_of_Week($year, $month, $day), 'en');
+  if ($yaml->[0]->{days}->{$day_of_week}) {
+    my $ratio = $yaml->[0]->{days}->{$day_of_week};
+    $current_min = int ( ( $current_min * $ratio ) / 100 );
+    $current_max = int ( ( $current_max * $ratio ) / 100 );
+    if ($verbose) { print "Altering min/max based on $day_of_week: min = $current_min, max = $current_max\n"; }
+  }
   
   # 3. Calculate the actual number of issues to do
   my $issues_to_do = int(rand($current_max-$current_min+1)) + $current_min;
