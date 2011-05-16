@@ -27,6 +27,13 @@ sub client_transform {
 
 	my $record = shift;
 
+	# 0. CHECK THAT THIS IS A RECORD WE WANT TO KEEP
+
+	# Skip any records that do not have a 245
+	if (!$record->field('245')) {
+		return;
+	}
+
 	# 1. BUILD KOHA-SPECIFIC FIELDS
 	
 	# BUILD FIELD 942
@@ -184,8 +191,8 @@ sub client_transform {
 		my $field001 = $record->field('001')->data();
 		# Get the 7 first difits from 001
 		my $titlenumber = substr $field001, 0, 7;
-		# Assemble the barcode - pad $itemcounter with up to two leading zeros
-		$field952->add_subfields('p' => '03011' . $titlenumber . sprintf("%02d", $itemcounter));
+		# Assemble the barcode
+		$field952->add_subfields('p' => '03011' . $titlenumber . sprintf("%03d", $itemcounter));
 
   		# q = Checked out
   

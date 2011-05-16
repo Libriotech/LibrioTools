@@ -28,7 +28,7 @@ use MARC::File::USMARC;
 use MARC::File::XML;
 use String::Strip;
 use Encode;
-binmode STDOUT, ":utf8";
+# binmode STDOUT, ":utf8";
 
 use strict;
 
@@ -61,13 +61,20 @@ print "Starting records iteration\n" if $debug;
 while (my $record = $batch->next()) {
   
 	# print the record before it is transformed
-	print "\n########################################\n" if $debug;
+	print "\n################# $count  ####################\n" if $debug;
 	print $record->title(), "\n" if $debug;
 	print $record->as_formatted(), "\n" if $debug;
 
 	# TRANSFORM
 
  	$record = client_transform($record);
+
+	# client_transform might have rejected the record, so we need to 
+	# check what we got back, and skip to the next record if it was 
+	# rejected
+	if (!$record) {
+		next;
+	}
 
 	# OUTPUT
 	
@@ -200,7 +207,7 @@ Short name for the client to be processed. Must correspond to a file called Clie
                                                        
 =item B<-d, --debug>
 
-Records in line format and details of the process will be printed to stdout
+Records in mnemonic form pre and post transform will be output. 
 
 =item B<-l, --limit>
 
