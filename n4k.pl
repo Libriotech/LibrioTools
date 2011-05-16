@@ -207,7 +207,7 @@ Short name for the client to be processed. Must correspond to a file called Clie
                                                        
 =item B<-d, --debug>
 
-Records in line format and details of the process will be printed to stdout
+Records in mnemonic form pre and post transform will be output. 
 
 =item B<-l, --limit>
 
