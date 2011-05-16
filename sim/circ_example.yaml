@@ -12,8 +12,8 @@ min_issues_per_day_per_borrower: 1
 # modified based on week of the year and/or day of the
 # week with the settings further down in this file
 
-min_issues_per_day: 3
-max_issues_per_day: 7
+min_issues_per_day: 25
+max_issues_per_day: 50
 
 # Weeks - Not implemented yet! 
 # If there are weeks where you want the number of issues to 
@@ -27,15 +27,17 @@ max_issues_per_day: 7
 # the average here! 
 
 weeks: 
-- 1: 75
-- 9: 75
-- 12: 150
-- 13: 175
-- 14: 200
-- 15: 75
-- 24: 10
-- 25: 10
-- 52: 10
+  1: 75
+  9: 75
+  12: 150
+  13: 175
+  14: 200
+  15: 75
+  19: 50
+  20: 10
+  24: 10
+  25: 10
+  52: 10
 
 # Days - Not implemented yet
 # This works similar to weeks, slow days of the week get

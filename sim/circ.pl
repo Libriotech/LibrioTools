@@ -21,7 +21,7 @@ use C4::Circulation;
 use C4::Context;
 use C4::Items;
 use C4::Members;
-use Date::Calc qw( Add_Delta_Days Day_of_Week Delta_Days Today );
+use Date::Calc qw( Add_Delta_Days Day_of_Week Delta_Days Today Week_Number );
 use YAML::Tiny;
 use Getopt::Long;
 use Pod::Usage;
@@ -32,16 +32,6 @@ use warnings;
 
 ## get command line options
 my ($from, $config, $returns_after, $zap, $verbose, $debug) = get_options();
-
-# Open the config
-my $yaml = YAML::Tiny->new;
-if (-e $config) {
-  $yaml = YAML::Tiny->read($config);
-} else {
-  die "Could not find $config\n";
-}
-my $min = $yaml->[0]->{min_issues_per_day};
-my $max = $yaml->[0]->{max_issues_per_day};
 
 # Connect to database
 my $dbh   = C4::Context->dbh();
@@ -60,14 +50,20 @@ if ($zap) {
   exit;
 }
 
+# Open the config
+my $yaml = YAML::Tiny->new;
+if (-e $config) {
+  $yaml = YAML::Tiny->read($config);
+} else {
+  die "Could not find $config\n";
+}
+my $min = $yaml->[0]->{min_issues_per_day};
+my $max = $yaml->[0]->{max_issues_per_day};
+
 print "\nStarting circ.pl\nSettings:\n"      if $verbose;
 print "Simulating circulations from $from\n" if $verbose;
 print "Min number of issues per day: $min\n" if $verbose;
 print "Max number of issues per day: $max\n" if $verbose;
-
-# Number of returns to do per day, average of $min and $max
-# FIXME Make sure this is an integer
-my $returns_to_do = ($max + $min) / 2;
 
 # Do some checks on the database
 my $barcodes_sth   = $dbh->prepare("SELECT count(*) as count FROM items WHERE barcode != ''");
@@ -104,20 +100,49 @@ for ( my $i = 0; $i <= $j; $i++ ) {
 
   # Calculate the dates
   my @date = Add_Delta_Days(@start,$i);
-  if ($date[1] < 10) { $date[1] = "0" . $date[1]; }
-  if ($date[2] < 10) { $date[2] = "0" . $date[2]; }
-  my $date = $date[0] . "-" . $date[1] . "-" . $date[2];
+  # Set individual variables
+  my $year  = $date[0];
+  my $month = $date[1];
+  my $day   = $date[2];
+  # Create padded versions of month and day
+  my $month_pad = $month;
+  my $day_pad   = $day;
+  if ($date[1] < 10) { 
+    $month_pad = "0" . $month_pad; 
+  }
+  if ($day_pad < 10) { 
+    $day_pad = "0" . $day_pad; 
+  }
+  my $date = $year . "-" . $month_pad . "-" . $day_pad;
 
   # Skip sundays
   # TODO Turn this into an option
   if (Day_of_Week(@date) == 7) {
-    if ($verbose) { print "$date Skipping Sunday\n\n"; }
+    if ($verbose) { print "Day #$i $date Skipping Sunday\n\n"; }
     next;
   }
 
-  # Find the number of issues we want to do
-  my $issues_to_do = int(rand($max-$min+1)) + $min;
+  # Find the number of issues we want to do, in 3 steps: 
+  my $current_min = 0;
+  my $current_max = 0;
+  
+  # 1. Should we alter the default based on the number of the week?
+  my $week_number = Week_Number($year, $month, $day);
+  if ($yaml->[0]->{weeks}->{$week_number}) {
+    my $ratio = $yaml->[0]->{weeks}->{$week_number};
+    $current_min = int ( ( $min * $ratio ) / 100 );
+    $current_max = int ( ( $max * $ratio ) / 100 );
+    if ($verbose) { print "Altering based on week number $week_number: min = $current_min, max = $current_max\n"; }
+  }
+  
+  # Should we alter the default based on the day of the week?
+  
+  # 3. Calculate the actual number of issues to do
+  my $issues_to_do = int(rand($current_max-$current_min+1)) + $current_min;
   if ($verbose) { print "Day #$i $date Going to do $issues_to_do issues\n"; }
+
+  # Number of returns to do per day, average of $min and $max
+  my $returns_to_do = int ( ($current_max + $current_min) / 2 );
 
   # Get the borrowernumbers
   $get_borrowers_sth->execute($issues_to_do);
@@ -135,6 +160,8 @@ for ( my $i = 0; $i <= $j; $i++ ) {
     # AddIssue() accesses userenv so we need to create it
     C4::Context->_new_userenv('dummy');
     # FIXME Set "usernum" (= borrowernumber) and branch dynamically!
+    # This tells Koha the borrowernumber of the librarian who makes the 
+    # issue, and what branch that librarian is connected to. 
     C4::Context::set_userenv(51, undef, undef, undef, undef, 'CPL', undef, undef, undef, undef);
 
     # From C4::Circulation::AddIssue():
