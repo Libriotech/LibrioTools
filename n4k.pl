@@ -61,7 +61,7 @@ print "Starting records iteration\n" if $debug;
 while (my $record = $batch->next()) {
   
 	# print the record before it is transformed
-	print "\n########################################\n" if $debug;
+	print "\n################# $count  ####################\n" if $debug;
 	print $record->title(), "\n" if $debug;
 	print $record->as_formatted(), "\n" if $debug;
 
