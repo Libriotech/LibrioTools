@@ -115,11 +115,19 @@ for ( my $i = 0; $i <= $j; $i++ ) {
   }
   my $date = $year . "-" . $month_pad . "-" . $day_pad;
 
-  # Find the number of issues we want to do, in 3 steps: 
+  # Find the number of issues we want to do, in 4 steps: 
   my $current_min = 0;
   my $current_max = 0;
+
+  # 1. Should we alter the default based on the year?
+  if ($yaml->[0]->{years}->{$year}) {
+    my $ratio = $yaml->[0]->{years}->{$year};
+    $current_min = int ( ( $min * $ratio ) / 100 );
+    $current_max = int ( ( $max * $ratio ) / 100 );
+    if ($verbose) { print "Altering min/max based on year $year: min = $current_min, max = $current_max\n"; }
+  }
   
-  # 1. Should we alter the default based on the number of the week?
+  # 2. Should we alter the default based on the number of the week?
   my $week_number = Week_Number($year, $month, $day);
   if ($yaml->[0]->{weeks}->{$week_number}) {
     my $ratio = $yaml->[0]->{weeks}->{$week_number};
@@ -128,7 +136,7 @@ for ( my $i = 0; $i <= $j; $i++ ) {
     if ($verbose) { print "Altering min/max based on week #$week_number: min = $current_min, max = $current_max\n"; }
   }
   
-  # 2. Should we alter the default based on the day of the week?
+  # 3. Should we alter the default based on the day of the week?
   my $day_of_week = lc Day_of_Week_to_Text(Day_of_Week($year, $month, $day), 'en');
   if ($yaml->[0]->{days}->{$day_of_week}) {
     my $ratio = $yaml->[0]->{days}->{$day_of_week};
@@ -137,7 +145,7 @@ for ( my $i = 0; $i <= $j; $i++ ) {
     if ($verbose) { print "Altering min/max based on $day_of_week: min = $current_min, max = $current_max\n"; }
   }
   
-  # 3. Calculate the actual number of issues to do
+  # 4. Calculate the actual number of issues to do
   my $issues_to_do = int(rand($current_max-$current_min+1)) + $current_min;
   if ($verbose) { print "Day #$i $date Going to do $issues_to_do issues\n"; }
 

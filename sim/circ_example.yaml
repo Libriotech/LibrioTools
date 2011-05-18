@@ -15,6 +15,17 @@ min_issues_per_day_per_borrower: 1
 min_issues_per_day: 3
 max_issues_per_day: 7
 
+# If you are generating statistics that span more than one year, 
+# you can change the frequency of issues on a year by year basis.
+# List the years you want to differ from the average here, along
+# with the percentage of the difference. (You probably want to 
+# keep these numbers close to 100.)
+
+years: 
+  2008: 93
+  2009: 96
+  2010: 98
+
 # If there are weeks where you want the number of issues to 
 # be different than the average max and mins defined above
 # you can list them here, along with a change in number of
