@@ -115,7 +115,8 @@ for ( my $i = 0; $i <= $j; $i++ ) {
   }
   my $date = $year . "-" . $month_pad . "-" . $day_pad;
 
-  # Find the number of issues we want to do, in 4 steps: 
+  # Find the total number of issues we want to do on this date
+  # There are 4 steps: 
   my $current_min = 0;
   my $current_max = 0;
 

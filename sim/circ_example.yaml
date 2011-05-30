@@ -3,7 +3,7 @@
 # This is a sample config file for circ.pl
 
 # Per user - Not implemented yet! 
-# Max number of issues a borrower should make in one day
+# Max number of issues a borrower can make in one day
 max_issues_per_day_per_borrower: 15
 min_issues_per_day_per_borrower: 1
 
