@@ -19,13 +19,12 @@ sub client_transform {
   # Define mapping from item types in source to codes for Koha item types
   # To be used in 942c and 952y
   # We will lc before comparing, so use lowercase in the keys
-  # TODO
-  my %item_types = (
-    'musiktryck'             => 'MT', 
-    'ljudupptagning'         => 'LJ', 
-    'kartografiskt material' => 'MP', 
-    'ljudbok (cd)'           => 'LB'
-  );
+  # my %item_types = (
+  #   'musiktryck'             => 'MT', 
+  #   'ljudupptagning'         => 'LJ', 
+  #   'kartografiskt material' => 'MP', 
+  #   'ljudbok (cd)'           => 'LB'
+  # );
 
   my $record = shift;
 
@@ -38,17 +37,16 @@ sub client_transform {
   # a	Institution code [OBSOLETE]
 
   # c	Koha [default] item type
-  # TODO
-  if (my $field245h = lc($record->subfield('245', 'h'))) {
-    StripLTSpace($field245h);
-    if ($item_types{$field245h}) {
-      $field942->add_subfields('c' => $item_types{$field245h});  
-    } else {
-      $field942->add_subfields('c' => 'BK');	
-    }
-  } else {
-    $field942->add_subfields('y' => 'BK');	
-  }
+  # if (my $field245h = lc($record->subfield('245', 'h'))) {
+  #   StripLTSpace($field245h);
+  #   if ($item_types{$field245h}) {
+  #     $field942->add_subfields('c' => $item_types{$field245h});  
+  #   } else {
+  #     $field942->add_subfields('c' => 'BK');	
+  #   }
+  # } else {
+  #   $field942->add_subfields('y' => 'BK');	
+  # }
 
   # e	Edition
   # h	Classification part
@@ -119,7 +117,6 @@ sub client_transform {
     $field952->add_subfields('b' => '11227');
 	  
     # c = Shelving location
-    # TODO
     # Coded value, matching Authorized Value category ('LOC' in default installation)
 	  # Add a simple, standard value for all records
     $field952->add_subfields('c' => 'BIB');
@@ -149,22 +146,23 @@ sub client_transform {
     # STACK
 
     # l = Total Checkouts	
-    # TODO
-
+    if (my $field0994 = $field099->subfield('4')) {
+      $field952->add_subfields('l' => $field0994);
+    }
+    
     # m = Total Renewals	
 
     # n = Total Holds	
 
     # o = Full call number 
     # This is stored in either 852c or 852h
-    # TODO
-    if ($record->field('852')) {
-      if ($record->field('852')->subfield('c')) {
-        $field952->add_subfields('o' => $record->field('852')->subfield('c'));
-      } elsif ($record->field('852')->subfield('h')) {
-      	$field952->add_subfields('o' => $record->field('852')->subfield('h'));
-      }
-    }
+    # if ($record->field('852')) {
+    #   if ($record->field('852')->subfield('c')) {
+    #     $field952->add_subfields('o' => $record->field('852')->subfield('c'));
+    #   } elsif ($record->field('852')->subfield('h')) {
+    #   	$field952->add_subfields('o' => $record->field('852')->subfield('h'));
+    #   }
+    # }
 
     # p = Barcode
     # max 20 characters 
@@ -173,13 +171,13 @@ sub client_transform {
     }
 
     # q = Checked out
-    # TODO?
 
     # r = Date last seen 
-    # TODO
+    if (my $field0999 = $field099->subfield('9')) {
+      $field952->add_subfields('r' => $field0999);
+    }
     
     # s = Date last checked out	
-    # TODO?
 
     # t = Copy number	
     # 099b contains e.g. "Ex. 1"
@@ -202,23 +200,22 @@ sub client_transform {
     # y = Koha item type
     # coded value, required field for circulation 	 
     # Coded value, must be defined in System Administration > Item types and Circulation Codes
-    # TODO is this information anywhere? 
-    if (my $field245h = lc($record->subfield('245', 'h'))) {
-      StripLTSpace($field245h);
-      if ($item_types{$field245h}) {
-    	$field952->add_subfields('y' => $item_types{$field245h});
-      } else {
-    	$field952->add_subfields('y' => 'BK');	
-      }
-    } else {
-      $field952->add_subfields('y' => 'BK');	
-    }
+    # is this information anywhere? 
+    # if (my $field245h = lc($record->subfield('245', 'h'))) {
+    #   StripLTSpace($field245h);
+    #   if ($item_types{$field245h}) {
+    # 	$field952->add_subfields('y' => $item_types{$field245h});
+    #   } else {
+    # 	$field952->add_subfields('y' => 'BK');	
+    #   }
+    # } else {
+    $field952->add_subfields('y' => 'BK');	
+    # }
 
     # z = Public note
 
     # 0 = Withdrawn status
     # WITHDRAWN
-    # TODO?
 
     # 1 = Lost status
     # LOST  	0 
@@ -229,23 +226,21 @@ sub client_transform {
     # 099q = Tapt
     # 099q = Savnet
     # 099q = Hevdet innlevert
-    # TODO
-    # if (my $field099q = $field099->subfield('q')) {
-    #   if ($field099q eq 'Tapt') {
-    # 	$field952->add_subfields('1' => 1);
-    #   } elsif ($field099q eq 'Savnet') {
-    # 	$field952->add_subfields('1' => 4);
-    #   } elsif ($field099q eq 'Hevdet innlevert') {
-    # 	$field952->add_subfields('1' => 2);
-    #   }
-    # }
+    if (my $field099q = $field099->subfield('q')) {
+      if ($field099q eq 'Tapt') {
+    	  $field952->add_subfields('1' => 1);
+      } elsif ($field099q eq 'Purrebrev sendt') {
+    	  $field952->add_subfields('1' => 2);
+      } elsif ($field099q eq 'Tapt utlån') {
+    	  $field952->add_subfields('1' => 2);
+      }
+    }
 
     # 2 = Source of classification or shelving scheme
     # cn_source
     # Values are in class_source.cn_source
     # See also 942$2
     # If 096a starts with three digits we count this as dcc-based scheme
-    # TODO? 
     # if ($record->field('096') && $record->field('096')->subfield('a')) {
     #   my $field096a = $record->field('096')->subfield('a');
     #   if ($field096a =~ m/^[0-9]{3,}.*/) {
@@ -260,7 +255,7 @@ sub client_transform {
     # 4 = Damaged status
     # DAMAGED  	0  	
     # DAMAGED 	1 	Damaged 	 
-    # TODO?
+    $field952->add_subfields('4' => 0);
 
     # 5 = Use restrictions
     # RESTRICTED  	0  	
@@ -270,7 +265,7 @@ sub client_transform {
     # 6 = Koha normalized classification for sorting
 
     # 7 = Not for loan	
-    # Status of the item, connect with the authorised values list 'NOT_LOAN' TODO?
+    # Status of the item, connect with the authorised values list 'NOT_LOAN'
     # 099x Gallrad ('SCRAPPED')
     if (my $field099x = $field099->subfield('x')) {
       if ($field099x eq "SCRAPPED") {
@@ -280,7 +275,6 @@ sub client_transform {
 
     # 8 = Collection code	
     # CCODE
-    # TODO? 
 
     # 9 = Koha itemnumber (autogenerated)
 
