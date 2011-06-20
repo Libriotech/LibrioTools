@@ -2,6 +2,13 @@
 
 # This is a sample config file for circ.pl
 
+# Staff user
+# The borrowernumber of the staff user that will do all our issues. 
+# We will change the branch affailiation of this user dynamically, 
+# but it needs to be the borrowernumber of a staff user with circ
+# permissions. 
+staff_user = 51
+
 # Per user - Not implemented yet! 
 # Max number of issues a borrower can make in one day
 max_issues_per_day_per_borrower: 15

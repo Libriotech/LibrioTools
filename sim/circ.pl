@@ -171,7 +171,7 @@ for ( my $i = 0; $i <= $j; $i++ ) {
     # FIXME Set "usernum" (= borrowernumber) and branch dynamically!
     # This tells Koha the borrowernumber of the librarian who makes the 
     # issue, and what branch that librarian is connected to. 
-    C4::Context::set_userenv(51, undef, undef, undef, undef, 'CPL', undef, undef, undef, undef);
+    C4::Context::set_userenv($yaml->[0]->{staff_user}, undef, undef, undef, undef, 'CPL', undef, undef, undef, undef);
 
     # From C4::Circulation::AddIssue():
     # $borrower is a hash with borrower informations (from GetMemberDetails).
