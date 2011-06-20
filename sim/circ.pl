@@ -138,7 +138,7 @@ for ( my $i = 0; $i <= $j; $i++ ) {
   }
   
   # 3. Should we alter the default based on the day of the week?
-  my $day_of_week = lc Day_of_Week_to_Text(Day_of_Week($year, $month, $day), 'en');
+  my $day_of_week = lc Day_of_Week_to_Text(Day_of_Week($year, $month, $day), 1); # 1 = English
   if ($yaml->[0]->{days}->{$day_of_week}) {
     my $ratio = $yaml->[0]->{days}->{$day_of_week};
     $current_min = int ( ( $current_min * $ratio ) / 100 );
@@ -158,6 +158,7 @@ for ( my $i = 0; $i <= $j; $i++ ) {
   while (my $borrowerid = $get_borrowers_sth->fetchrow_hashref()) {
     
     # Get the barcode of a random item that is not on loan
+    # TODO Limit to the branch of the chosen patron
     $get_barcodes_sth->execute(1);
     my $barcode = $get_barcodes_sth->fetchrow_hashref();
     if ($debug) { print "\$barcode ", Dumper $barcode; }
@@ -168,10 +169,12 @@ for ( my $i = 0; $i <= $j; $i++ ) {
 
     # AddIssue() accesses userenv so we need to create it
     C4::Context->_new_userenv('dummy');
-    # FIXME Set "usernum" (= borrowernumber) and branch dynamically!
-    # This tells Koha the borrowernumber of the librarian who makes the 
-    # issue, and what branch that librarian is connected to. 
-    C4::Context::set_userenv($yaml->[0]->{staff_user}, undef, undef, undef, undef, 'CPL', undef, undef, undef, undef);
+    # Borrowernumber for the staff user doing the issue is taken from 
+    # the config file. 
+    # We set the branch of the librarian to that of the borrower we
+    # have already selected, so that the issue is made from the 
+     #branch the partron is connected to. 
+    C4::Context::set_userenv($yaml->[0]->{staff_user}, undef, undef, undef, undef, $borrower->{'branchcode'}, undef, undef, undef, undef);
 
     # From C4::Circulation::AddIssue():
     # $borrower is a hash with borrower informations (from GetMemberDetails).
