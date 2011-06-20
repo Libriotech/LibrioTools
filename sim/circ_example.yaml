@@ -11,7 +11,7 @@ staff_user: 51
 
 # Per user - Not implemented yet! 
 # Max number of issues a borrower can make in one day
-max_issues_per_day_per_borrower: 15
+max_issues_per_day_per_borrower: 4
 min_issues_per_day_per_borrower: 1
 
 # Maximum and minimum issues that should be made in a day
@@ -52,8 +52,6 @@ weeks:
   15: 75
   19: 50
   20: 10
-  24: 10
-  25: 10
   52: 10
 
 # This works similar to weeks, slow days of the week get

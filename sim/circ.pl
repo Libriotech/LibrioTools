@@ -92,7 +92,7 @@ my $j = Delta_Days(@start,@stop);
 
 # Prepare some statement handles
 my $get_borrowers_sth = $dbh->prepare("SELECT borrowernumber FROM borrowers WHERE cardnumber IS NOT NULL ORDER BY RAND() LIMIT ?");
-my $get_barcodes_sth  = $dbh->prepare("SELECT barcode FROM items WHERE onloan IS NULL AND barcode IS NOT NULL ORDER BY RAND() LIMIT ?");
+my $get_barcodes_sth  = $dbh->prepare("SELECT barcode FROM items WHERE onloan IS NULL AND barcode IS NOT NULL AND homebranch = ? ORDER BY RAND() LIMIT ?");
 my $get_onloan_sth    = $dbh->prepare("SELECT borrowernumber, itemnumber FROM issues ORDER BY RAND() LIMIT ?");
 
 DATES:
@@ -117,8 +117,8 @@ for ( my $i = 0; $i <= $j; $i++ ) {
 
   # Find the total number of issues we want to do on this date
   # There are 4 steps: 
-  my $current_min = 0;
-  my $current_max = 0;
+  my $current_min = $min;
+  my $current_max = $max;
 
   # 1. Should we alter the default based on the year?
   if ($yaml->[0]->{years}->{$year}) {
@@ -148,24 +148,27 @@ for ( my $i = 0; $i <= $j; $i++ ) {
   
   # 4. Calculate the actual number of issues to do
   my $issues_to_do = int(rand($current_max-$current_min+1)) + $current_min;
-  if ($verbose) { print "Day #$i $date Going to do $issues_to_do issues\n"; }
+  if ($verbose) { print "Day #$i, week #$week_number $date Going to do $issues_to_do issues\n"; }
 
   # Number of returns to do per day, average of $min and $max
   my $returns_to_do = int ( ($current_max + $current_min) / 2 );
-
-  # Get the borrowernumbers
-  $get_borrowers_sth->execute($issues_to_do);
-  while (my $borrowerid = $get_borrowers_sth->fetchrow_hashref()) {
-    
-    # Get the barcode of a random item that is not on loan
-    # TODO Limit to the branch of the chosen patron
-    $get_barcodes_sth->execute(1);
-    my $barcode = $get_barcodes_sth->fetchrow_hashref();
-    if ($debug) { print "\$barcode ", Dumper $barcode; }
   
+  my $issues_done = 0;
+  PATRONS:
+  while ($issues_done <= $issues_to_do) {
+  
+    # Get one borrower
+    $get_borrowers_sth->execute(1);
+    my $borrowerid = $get_borrowers_sth->fetchrow_hashref();
+
     my $borrower = GetMemberDetails( $borrowerid->{'borrowernumber'}, 0 );
     if ($debug) { print "\$borrowernumber ", Dumper $borrowerid; }
     if ($debug) { print "\$borrower ",       Dumper $borrower; }
+    
+    # Find the number of issues to do for this patron
+    # Random number between min and max
+    my $issues_to_do_for_patron = int(rand($yaml->[0]->{'max_issues_per_day_per_borrower'} - $yaml->[0]->{'min_issues_per_day_per_borrower'}+1)) + $yaml->[0]->{'min_issues_per_day_per_borrower'};
+    print "\tGoing to do $issues_to_do_for_patron issues for patron " . $borrowerid->{'borrowernumber'} . ", branch " . $borrower->{'branchcode'} . "\n";
 
     # AddIssue() accesses userenv so we need to create it
     C4::Context->_new_userenv('dummy');
@@ -173,19 +176,44 @@ for ( my $i = 0; $i <= $j; $i++ ) {
     # the config file. 
     # We set the branch of the librarian to that of the borrower we
     # have already selected, so that the issue is made from the 
-     #branch the partron is connected to. 
+    # branch the partron is connected to. 
     C4::Context::set_userenv($yaml->[0]->{staff_user}, undef, undef, undef, undef, $borrower->{'branchcode'}, undef, undef, undef, undef);
+    
+    # Get the barcode of x random items that are not on loan
+    # TODO Limit to the branch of the chosen patron
+    $get_barcodes_sth->execute($borrower->{'branchcode'}, $issues_to_do_for_patron);
+    
+    # Check how many items were returned
+    my $number_of_items_found = $get_barcodes_sth->rows;
+    if ($number_of_items_found == 0) {
+      if ($verbose) { print "\tWARNING! No available items for branch " . $borrower->{'branchcode'} . "\n"; }
+      # Try another patron
+      next PATRONS;
+    } else {
+      if ($verbose) { print "\tFound $number_of_items_found available items for ", $borrower->{'branchcode'}, "\n"; }
+    }
+  
+    while (my $barcode = $get_barcodes_sth->fetchrow_hashref()) {
+    
+      if ($debug) { print "\$barcode ", Dumper $barcode; }
+    
+      # From C4::Circulation::AddIssue():
+      # $borrower is a hash with borrower informations (from GetMemberDetails).
+      # $barcode is the barcode of the item being issued.
+      # $datedue is a C4::Dates object for the max date of return, i.e. the date due (optional).
+      # $cancelreserve is 1 to override and cancel any pending reserves for the item (optional).
+      # $issuedate is the date to issue the item in iso (YYYY-MM-DD) format (optional).
+      # Defaults to today.  Unlike C<$datedue>, NOT a C4::Dates object, unfortunately.
+      my $datedue = AddIssue($borrower, $barcode->{'barcode'}, undef, undef, $date);
 
-    # From C4::Circulation::AddIssue():
-    # $borrower is a hash with borrower informations (from GetMemberDetails).
-    # $barcode is the barcode of the item being issued.
-    # $datedue is a C4::Dates object for the max date of return, i.e. the date due (optional).
-    # $cancelreserve is 1 to override and cancel any pending reserves for the item (optional).
-    # $issuedate is the date to issue the item in iso (YYYY-MM-DD) format (optional).
-    # Defaults to today.  Unlike C<$datedue>, NOT a C4::Dates object, unfortunately.
-    my $datedue = AddIssue($borrower, $barcode->{'barcode'}, undef, undef, $date);
-
-    if ($verbose) { print "\tISSUE  Borrowernumber: " . $borrower->{'borrowernumber'} . " Barcode: " . $barcode->{'barcode'} . " Duedate: " . $datedue->output('iso') . "\n"; }
+      if ($verbose) { print "\tISSUE  Borrowernumber: " . $borrower->{'borrowernumber'} . " Barcode: " . $barcode->{'barcode'} . " Duedate: " . $datedue->output('iso') . "\n"; }
+      
+      $issues_done++;
+      
+      # FIXME This skips the returns!
+      next DATES if $issues_done >= $issues_to_do;
+      
+    }
 
   }
 
