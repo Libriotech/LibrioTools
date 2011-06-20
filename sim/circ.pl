@@ -180,7 +180,6 @@ for ( my $i = 0; $i <= $j; $i++ ) {
     C4::Context::set_userenv($yaml->[0]->{staff_user}, undef, undef, undef, undef, $borrower->{'branchcode'}, undef, undef, undef, undef);
     
     # Get the barcode of x random items that are not on loan
-    # TODO Limit to the branch of the chosen patron
     $get_barcodes_sth->execute($borrower->{'branchcode'}, $issues_to_do_for_patron);
     
     # Check how many items were returned
@@ -233,8 +232,6 @@ for ( my $i = 0; $i <= $j; $i++ ) {
   if ($verbose) { print "\t"; print_status(); print "\n"; }
 
 }
-
-# TODO Should all active issues be returned before we finnish? 
 
 ### SUBROUTINES ###
 
