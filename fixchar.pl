@@ -2,7 +2,7 @@
 
 # This needs to point to the file Charset.pm from Koha (http://koha-community.org/)
 # You probably need to change this line for the script to work on your system
-require "/home/magnus/scripts/kohanor32/C4/Charset.pm";
+require "/home/magnus/scripts/kohaclone/C4/Charset.pm";
 
 # You will also need to set the PERL5LIB environment variable to the directory on your 
 # system that contains the C4 directory of Koha
