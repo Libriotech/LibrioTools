@@ -11,8 +11,7 @@ use MARC::File::USMARC;
 use Getopt::Long;
 use Pod::Usage;
 use Data::Dumper;
-use strict;
-use warnings;
+use Modern::Perl;
 binmode STDOUT, ":utf8";
 
 my ($input_file, $limit, $encoding_filter, $verbose) = get_options();
@@ -43,7 +42,9 @@ while ( my $record = $marcfile->next() ) {
   }
 
   if ($verbose) { 
-    print $new_record->as_formatted(), "\n"; 
+    print $record->as_usmarc(), "\n"; 
+    print "---\n"; 
+    print $new_record->as_formatted(), "\n";
     if ($errors_arrayref->[0]) {
       print Dumper $errors_arrayref;
     }
