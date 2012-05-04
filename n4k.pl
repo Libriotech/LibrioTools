@@ -191,7 +191,7 @@ n4k.pl - Processes MARC from Norwegian ILSs for import into Koha.
         
 =head1 SYNOPSIS
             
-n4k.pl -i inputfile -s system [-d] [-l] [-x] [-h] > outputfile
+n4k.pl -i inputfile -c client [-d] [-l] [-x] [-h] > outputfile
                
 =head1 OPTIONS
               
@@ -216,7 +216,7 @@ Stop processing after n records.
 =item B<-x, --xml>
 
 Output records as MARCXML. Give filename as argument e.g.: 
-N'djamena4k.pl -i inputfile -s system -x out.xml [-d] [-l] [-h]
+n4k.pl -i inputfile -c client -x out.xml [-d] [-l] [-h]
 
 =item B<-h, -?, --help>
                                                
