@@ -44,7 +44,7 @@ while ( my $record = $marcfile->next() ) {
 
   if ($verbose) { 
     print $new_record->as_formatted(), "\n"; 
-    if ($errors_arrayref) {
+    if ($errors_arrayref->[0]) {
       print Dumper $errors_arrayref;
     }
     print "--- $c -- From: $converted_from ----------------------------------\n"; 
