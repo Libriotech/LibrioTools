@@ -39,6 +39,11 @@ while ( my $record = $marcfile->next() ) {
     }
     next;
   }
+  
+  # Check that 245$a is not just "1"
+  if ( $record->field('245') && $record->field('245')->subfield('a') && $record->field('245')->subfield('a') eq "1" ) {
+    next;
+  }
 
   my ($new_record, $converted_from, $errors_arrayref) = C4::Charset::MarcToUTF8Record($record, 'NORMARC');
   # $new_record = C4::Charset::SetUTF8Flag($new_record);
