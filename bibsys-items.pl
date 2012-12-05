@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# xyz.pl
+# bibsys-items.pl - Convert data from BIBSYS into format suitable for Koha
 # Copyright 2012 Magnus Enger Libriotech
 
 # This is free software; you can redistribute it and/or modify
@@ -37,7 +37,7 @@ my %itemtypemap = (
 );
 
 # Get options
-my ($marc_file, $item_file, $out_file, $limit, $verbose, $debug) = get_options();
+my ($marc_file, $item_file, $out_file, $analytics, $limit, $verbose, $debug) = get_options();
 
 # Check that the file exists
 if (!-e $marc_file) {
@@ -114,6 +114,17 @@ my %field008count;
 my %field008count_ab;
 my %subjectcount;
 
+# Walk through the records once, to map identifiers to titles. We will use this
+# when we convert 491 to 773. 
+my %titles;
+while (my $record = $batch->next()) {
+    if ( $record->field( '001' ) && $record->field( '245' ) && $record->field( '245' )->subfield( 'a' ) ) {
+        $titles{ $record->field( '001' )->data() } = $record->field( '245' )->subfield( 'a' );
+    }
+}
+
+# Walk through the records once more, to do the bulk of the editing
+$batch = MARC::File::USMARC->in( $marc_file );
 while (my $record = $batch->next()) {
 
   # Set the UTF-8 flag
@@ -263,7 +274,42 @@ while (my $record = $batch->next()) {
       }
   }
   
-  # Deal with 691
+    # 491
+    if ( $record->field( '491' ) && $analytics ) {
+        say '-------------------------------------';
+        say $record->field( '001' )->as_formatted();
+        if ( $record->field( '245' ) ) {
+        say $record->field( '245' )->as_formatted();
+        }
+        say $record->field( '491' )->as_formatted();
+    }
+    if ( $record->field( '491' ) && $record->field( '491' )->subfield( 'n' ) ) {
+
+        my $field491 = $record->field( '491' );
+        my $field773 = MARC::Field->new( '773', ' ', ' ',
+            'w' => $field491->subfield( 'n' )
+        );
+        # Title
+        if ( $field491->subfield( 'a' ) ) {
+            $field773->add_subfields( 't' => $field491->subfield( 'a' ) );
+        } elsif ( $titles{ $field491->subfield( 'n' ) } ) {
+            # Use the actual title 
+            $field773->add_subfields( 't' => $titles{ $field491->subfield( 'n' ) } );
+        }
+        if ( $field491->subfield( 'v' ) ) {
+            $field773->add_subfields( 'b' => $field491->subfield( 'v' ) );
+        }
+        $record->insert_fields_ordered( $field773 );
+        $record->delete_fields( $field491 );
+        
+        # Print the 773 we just added
+        if ( $analytics ) {
+            say $record->field( '773' )->as_formatted();
+        }
+
+    }
+  
+  # 691
   if ( $record->field( '691' ) && $record->field( '691' )->subfield( 'a' ) ) {
     my @subjects = split ' ', $record->field( '691' )->subfield( 'a' );
     foreach my $s ( @subjects ) {
@@ -276,10 +322,13 @@ while (my $record = $batch->next()) {
   }
   $record->delete_fields( $record->field( '691' ) );
   
+  # Remove 899
+  $record->delete_fields( $record->field( '899' ) );
+  
   # Add item info
   if ( $record->field( '001' ) ) {
     my $dokid = $record->field( '001' )->data();
-    # say $dokid if $verbose;
+    say $dokid if $verbose;
     if ( $items{ $record->field( '001' )->data() } ) {
       foreach my $olditem ( @{ $items{ $record->field( '001' )->data() } } ) {
         my $field952 = MARC::Field->new( 952, ' ', ' ',
@@ -288,15 +337,18 @@ while (my $record = $batch->next()) {
           'p' => $olditem->{ 'barcode' }, # Barcode
         );
         # Item type
+        my $itemtype;
         if ( $itemtypemap{ $field008ab } ) {
             if ( $olditem->{ '096' }{ 'c' } && $olditem->{ '096' }{ 'c' } =~ m/^Manus/ ) {
-                $field952->add_subfields( 'y', 'MAN' );
+                $itemtype = 'MAN';
             } else {
-                $field952->add_subfields( 'y', $itemtypemap{ $field008ab } );
+                $itemtype = $itemtypemap{ $field008ab };
             }
         } else {
-            $field952->add_subfields( 'y', 'X' );
+            $itemtype = 'X';
         }
+        my $field942 = MARC::Field->new( 942, ' ', ' ', 'c' => $itemtype );
+        $field952->add_subfields( 'y', $itemtype );
         # Call number
         if ( $olditem->{ '096' }{ 'c' } ) {
             if ( $olditem->{ '096' }{ 'c' } =~ m/(.*) \(Ikke fjern/ ) {
@@ -307,7 +359,8 @@ while (my $record = $batch->next()) {
             }
         }
         # Add the field to the record
-        $record->append_fields( $field952 );
+        $record->insert_fields_ordered( $field942 );
+        $record->insert_fields_ordered( $field952 );
       }
       # say $record->as_formatted;
       # die;
@@ -315,7 +368,9 @@ while (my $record = $batch->next()) {
   }
   
   # Write out the record as XML
-  $xmloutfile->write($record);
+  if ( $out_file ) {
+      $xmloutfile->write($record);
+  }
   
   $count++;
   if ( $limit && $limit == $count ) {
@@ -340,6 +395,7 @@ sub get_options {
   my $marc_file = '';
   my $item_file = '';
   my $out_file  = '';
+  my $analytics = '';
   my $limit     = '',
   my $verbose   = '';
   my $debug     = '';
@@ -348,7 +404,8 @@ sub get_options {
 GetOptions (
     'm|marcfile=s' => \$marc_file,
     'i|itemfile=s' => \$item_file,
-    'o|oytfile=s'  => \$out_file,
+    'o|outfile=s'  => \$out_file,
+    'a|analytics'  => \$analytics,
     'l|limit=i'    => \$limit,
     'v|verbose'    => \$verbose,
     'd|debug'      => \$debug,
@@ -359,7 +416,7 @@ GetOptions (
   pod2usage( -msg => "\nMissing Argument: -m, --marcfile required\n", -exitval => 1 ) if !$marc_file;
   pod2usage( -msg => "\nMissing Argument: -i, --itemfile required\n", -exitval => 1 ) if !$item_file;
 
-  return ( $marc_file, $item_file, $out_file, $limit, $verbose, $debug );
+  return ( $marc_file, $item_file, $out_file, $analytics, $limit, $verbose, $debug );
 
 }
 
@@ -387,7 +444,11 @@ File that contains item information.
 
 =item B<-o, --outfile>
 
-File to write XML records to.
+File to write XML records to. If this is left out no records will be output. (Useful for debugging.)
+
+=item B<-a, --analytics>
+
+Dump some info (001, 245, 491 and the generated 773) about analytic records. 
 
 =item B<-l, --limit>
 
