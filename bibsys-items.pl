@@ -25,19 +25,104 @@ use File::Slurp;
 use Pod::Usage;
 use Modern::Perl;
 use utf8;
+
 binmode STDOUT, ":utf8";
 
+# bibsys-items CONFIG
+
+# NISS
+# my %itemtypemap = (
+#     'pv' => 'BK', 
+#     'wj' => 'DVD',
+#     'vn' => 'CD',
+#     'vv' => 'CD',
+#     'tv' => 'LP',
+#     'px' => 'TIDS',
+# );
+
+# NITH
 my %itemtypemap = (
-  'pv' => 'BK', 
-  'wj' => 'DVD',
-  'vn' => 'CD',
-  'vv' => 'CD',
-  'tv' => 'LP',
-  'px' => 'TIDS',
+    'pv'  => 'BK',
+    'p8v' => 'BK',
+    'psv' => 'OPPG',
+    'pdv' => 'OPPG',
+    'phv' => 'OPPG',
+    'ncx' => 'NETTDOK',
+    'nx'  => 'NETTDOK',
+    'vv'  => 'BRETTSPILL',
+    'y0'  => 'TREDIM',
+);
+
+my %ccodemap = (
+    'master'  => 'MASTER', 
+    'pensum'  => 'PENSUM', 
+    'forkurs' => 'FORKURS',
+);
+
+# CONFIG END
+
+# Textual explanations of the codes in 008 $a and $b
+# http://www.bibsys.no/files/out/handbok_html/marc/marc-02.htm
+my %bibsys008a = (
+    'p' => 'Trykt materiale',
+    'n' => 'Nettdokumenter',
+    'v' => 'CD-er',
+    'w' => 'DVD-er',
+    'u' => 'Magnetbånd (på spole eller kassett)',
+    'x' => 'Manuskripter (originalmanuskripter og avskrifter, ikke faksimiler)',
+    'a' => 'Mikroformer',
+    't' => 'Grammofonplater',
+    'h' => 'Filmruller',
+    's' => 'Disketter',
+    'o' => 'Grafisk materiale som er tenkt projisert eller gjennomlyst',
+    'i' => 'Grafisk materiale ugjennomtrengelig for lys (kunstverk, fotografier, o.l.)',
+    'y' => 'Tredimensjonale gjenstander',
+    'z' => 'Braille (blindeskrift)',
+    'æ' => 'Kombidokument',
+    'å' => 'Laserplater (laser-optisk (refleksiv) videoplate med analog representasjon)',
+    'd' => 'Digibøker',
+    'ø' => 'Lagringsbrikker (minnepinner, etc.)',
+    'q' => 'Blu-ray',
+    '0' => 'Udefinert'
+);
+my %bibsys008b = (
+    'v' => 'Monografier',
+    'æ' => 'Fragmenter (artikler, musikkspor, etc.)',
+    'a' => 'Aviser',
+    'p' => 'Bibliografiske databaser (f. eks. ISI-basene, Norbok, o.l.)',
+    'q' => 'Fulltekstdatabaser',
+    'r' => 'Andre databaser (ordbøker, statistikkbaser, o.l.)',
+    'w' => 'Monografiserier, nummererte institusjonsserier',
+    'x' => 'Tidsskrifter',
+    'y' => 'Årbøker',
+    'z' => 'Andre typer løpende ressurser (inkl. årsberetninger, løsbladpublikasjoner, etc.)',
+    'n' => 'Innspilt musikk',
+    'l' => 'Lydbøker',
+    'ø' => 'Andre lydopptak (ikke musikkopptak, ikke lydbøker)',
+    'b' => 'Bibliografier, diskografier, filmografier',
+    'u' => 'Statistikk',
+    '5' => 'Anmeldelser. Brukes til kritiske vurderinger av ulike typer verk (bøker, filmer, lyopptak, teater, o.l.)',
+    '6' => 'Encyclopedier og leksika',
+    '7' => 'Kataloger',
+    '8' => 'Ordbøker',
+    '9' => 'Håndbøker.',
+    'j' => 'Levende bilder',
+    'm' => 'Musikalier (trykte eller elektroniske, etc. og musikkmanuskripter)',
+    'e' => 'Tilleggsfunksjonalitet (som finnes f.eks. i e-bøker)',
+    'd' => 'Dissertaser',
+    'h' => 'masteroppgaver og hovedfagsoppgaver fra norske læresteder',
+    's' => 'Studentarbeider, semesteroppgaver og lignende fra norske læresteder',
+    'c' => 'Kongresser, symposier',
+    'i' => 'Biografier',
+    'k' => 'Kart, atlas',
+    'o' => 'Billedmateriale',
+    'f' => 'Festskrift for person (kun til bruk for NBO)',
+    'g' => 'Festskrift for korporasjon (kun til bruk for NBO)',
+    '0' => 'Udefinert. Brukes også for digibøker'
 );
 
 # Get options
-my ($marc_file, $item_file, $out_file, $analytics, $limit, $verbose, $debug) = get_options();
+my ($marc_file, $item_file, $out_file, $analytics, $subjects, $ccodes, $f008, $f008ab, $limit, $verbose, $debug) = get_options();
 
 # Check that the file exists
 if (!-e $marc_file) {
@@ -64,7 +149,8 @@ my $item = {};
 my $itemcount = 0;
 foreach my $iline ( @ilines ) {
   $iline =~ s/\r\n//g; # chomp does not work
-  # say $iline if $debug;
+  $iline =~ s/\n//g;   # Some files have one, some have the other
+  say $iline if $debug;
   
   if ( $iline eq '^' ) {
 
@@ -72,7 +158,7 @@ foreach my $iline ( @ilines ) {
     
     push @{$items{ $item->{'recordid'} } }, $item;
     # say Dumper $items{ $item->{'recordid'} } if $debug;
-    # say Dumper %items if $debug;
+    say Dumper $item if $debug;
     
     # Empty %item so we can start over on a new one
     undef $item;
@@ -92,15 +178,17 @@ foreach my $iline ( @ilines ) {
       
     }
       
-  } elsif ( $iline =~ m/xh/ ) { # FIXME Turn into command line argument
-    $item->{'barcode'}  = substr $iline, 1;
+  } elsif ( $iline =~ m/xh/ ) { # FIXME Turn into command line argument? Or look for lines that start with *001
+    $item->{'barcode'}  = substr $iline, 4;
+    say $item->{'barcode'} if $debug;
   } else {
     $item->{'recordid'} = substr $iline, 1;
+    say $item->{'recordid'} if $debug;
   }
   
 }
 
-# print Dumper %items if $debug;
+print Dumper %items if $debug;
 say "$itemcount items processed" if $verbose;
 
 # print Dumper $items{'000052139980'};
@@ -112,6 +200,7 @@ my $batch = MARC::File::USMARC->in( $marc_file );
 my $count = 0;
 my %field008count;
 my %field008count_ab;
+my %field008ab_text;
 my %subjectcount;
 
 # Walk through the records once, to map identifiers to titles. We will use this
@@ -143,7 +232,8 @@ while (my $record = $batch->next()) {
       $field008 = substr $field008, 3;
       say $field008 if $verbose;
       
-      my ( $a, $b, $c, $c_count, @multi_c, $d );
+      my $a = ' ';
+      my ( @b, $c, $c_count, @multi_c, $d );
       my $e = ' ';
       my $f = '    ';
       my $i = ' ';
@@ -162,7 +252,7 @@ while (my $record = $batch->next()) {
               $a = $value;
           }
           if ( $index eq 'b' ) {
-              $b = $value;
+              push @b, $value;
           }
           if ( $index eq 'c' ) {
               $c = $value;
@@ -189,8 +279,12 @@ while (my $record = $batch->next()) {
           }
       }
       
-      $field008ab = $a . $b;
-      $field008count_ab{ $a . $b }++;
+      $field008ab = $a . join '', sort @b;
+      $field008count_ab{ $field008ab }++;
+      $field008ab_text{ $field008ab } = $bibsys008a{ $a };
+      foreach my $field2text ( @b ) {
+          $field008ab_text{ $field008ab } .= " + " . $bibsys008b{ $field2text };
+      }
 
       # Add a new 008 field, and possibly a 041 for multiple languages
       my $field008pos35_37 = '   ';
@@ -329,12 +423,14 @@ while (my $record = $batch->next()) {
   if ( $record->field( '001' ) ) {
     my $dokid = $record->field( '001' )->data();
     say $dokid if $verbose;
-    if ( $items{ $record->field( '001' )->data() } ) {
-      foreach my $olditem ( @{ $items{ $record->field( '001' )->data() } } ) {
+    if ( $items{ $dokid } ) {
+      foreach my $olditem ( @{ $items{ $dokid } } ) {
+        say "Found item for dokid $dokid with barcode ", $olditem->{ 'barcode' } if $debug;
         my $field952 = MARC::Field->new( 952, ' ', ' ',
           'a' => $olditem->{ '096' }{ 'a' }, # Homebranch
           'b' => $olditem->{ '096' }{ 'a' }, # Holdingbranch
-          'p' => $olditem->{ 'barcode' }, # Barcode
+          'c' => 'GEN',
+          'p' => $olditem->{ 'barcode' },    # Barcode
         );
         # Item type
         my $itemtype;
@@ -349,6 +445,15 @@ while (my $record = $batch->next()) {
         }
         my $field942 = MARC::Field->new( 942, ' ', ' ', 'c' => $itemtype );
         $field952->add_subfields( 'y', $itemtype );
+        # Collection code
+        if ( $olditem->{ '096' }{ 'b' } ) {
+            print $olditem->{ '096' }{ 'b' } if $ccodes;
+            if ( $ccodemap{ lc $olditem->{ '096' }{ 'b' } } ) {
+                print " -> ", $ccodemap{ lc $olditem->{ '096' }{ 'b' } } if $ccodes;
+                $field952->add_subfields( '8', $ccodemap{ lc $olditem->{ '096' }{ 'b' } } );
+            }
+            print "\n" if $ccodes;
+        }
         # Call number
         if ( $olditem->{ '096' }{ 'c' } ) {
             if ( $olditem->{ '096' }{ 'c' } =~ m/(.*) \(Ikke fjern/ ) {
@@ -379,12 +484,22 @@ while (my $record = $batch->next()) {
 
 }
 
-# foreach my $key ( sort keys %subjectcount ) {
-#   say '"', $key, '";', $subjectcount{ $key };
-# }
+if ( $subjects ) {
+    foreach my $key ( sort keys %subjectcount ) {
+        say '"', $key, '";', $subjectcount{ $key };
+    }
+}
 
-print Dumper \%field008count    if $verbose;
-print Dumper \%field008count_ab if $verbose;
+if ( $f008 ) {
+    print Dumper \%field008count;
+}
+
+if ( $f008ab ) {
+    foreach my $key (sort {$field008count_ab{$b} <=> $field008count_ab{$a} } keys %field008count_ab) {
+        say sprintf("%-4s", $key), sprintf("%5s", $field008count_ab{ $key }), "  ", $field008ab_text{ $key };
+    }
+}
+
 say "$count records processed" if $verbose;
 
 # Functions
@@ -396,6 +511,10 @@ sub get_options {
   my $item_file = '';
   my $out_file  = '';
   my $analytics = '';
+  my $subjects  = '';
+  my $ccodes    = '';
+  my $f008      = '';
+  my $f008ab    = '';
   my $limit     = '',
   my $verbose   = '';
   my $debug     = '';
@@ -406,6 +525,10 @@ GetOptions (
     'i|itemfile=s' => \$item_file,
     'o|outfile=s'  => \$out_file,
     'a|analytics'  => \$analytics,
+    's|subjects'   => \$subjects,
+    'c|ccodes'     => \$ccodes, 
+    'f008'         => \$f008,
+    'f008ab'       => \$f008ab,
     'l|limit=i'    => \$limit,
     'v|verbose'    => \$verbose,
     'd|debug'      => \$debug,
@@ -416,7 +539,7 @@ GetOptions (
   pod2usage( -msg => "\nMissing Argument: -m, --marcfile required\n", -exitval => 1 ) if !$marc_file;
   pod2usage( -msg => "\nMissing Argument: -i, --itemfile required\n", -exitval => 1 ) if !$item_file;
 
-  return ( $marc_file, $item_file, $out_file, $analytics, $limit, $verbose, $debug );
+  return ( $marc_file, $item_file, $out_file, $analytics, $subjects, $ccodes, $f008, $f008ab, $limit, $verbose, $debug );
 
 }
 
@@ -449,6 +572,22 @@ File to write XML records to. If this is left out no records will be output. (Us
 =item B<-a, --analytics>
 
 Dump some info (001, 245, 491 and the generated 773) about analytic records. 
+
+=item B<-s, --subjects>
+
+Print out subjects found in 691 in CSV format.
+
+=item B<-c, --ccodes>
+
+Print original and new collection codes. 
+
+=item B<--f008>
+
+Dump the contents of field 008, with frequencies.
+
+=item B<--f008ab>
+
+Print the concatenated contents of fields 008 a and b, in descending order of frequency.
 
 =item B<-l, --limit>
 
