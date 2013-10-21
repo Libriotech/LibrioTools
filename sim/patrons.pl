@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# patrins.pl
+# patrons.pl
 
 # Copyright 2011 Magnus Enger Libriotech
 #
@@ -23,53 +23,44 @@
 # http://bugs.koha-community.org/bugzilla3/show_bug.cgi?id=5633
 
 # TODO
-# Allow more then one branchcode and more than one categorycode
 # Make the user confirm before changing the database
 
 use C4::Context;
 use C4::Members;
 use File::Slurp;
 use List::Util 'shuffle';
-use YAML::Tiny;
+use YAML qw(LoadFile);
 use Getopt::Long;
 use Pod::Usage;
 use Data::Dumper;
-# use strict;
 
 my ($limit, $config, $verbose, $debug) = get_options();
 
 # Open the config
-my $yaml = YAML::Tiny->new;
+my $yaml = YAML->new;
 if (-e $config) {
-  $yaml = YAML::Tiny->read($config);
+  $yaml = YAML::LoadFile($config);
 } else {
   die "Could not find $config\n";
 }
-my $branchcodes      = $yaml->[0]->{branchcodes};
-my $patroncategories = $yaml->[0]->{patroncategories};
+my $branchcodes      = $yaml->{branchcodes};
+my $patroncategories = $yaml->{patroncategories};
 
 my @firstnames = read_file('firstnames.txt');
 my @surnames   = read_file('surnames.txt');
-my $count = 0;
+chomp @firstnames;
+chomp @surnames;
 
+my $count = 0;
 # Shuffle the arrays, so we don't get exactly the same users by running more than once
 @firstnames = shuffle(@firstnames);
 @surnames   = shuffle(@surnames);
 
-SURNAME:
-foreach my $firstname (@firstnames) {
-
-  chomp($firstname);
-
-  FIRSTNAME:
-  foreach my $surname (@surnames) {
-
-    chomp($surname);
-
+while ($count < $limit) {
     # Build information about this patron
     my %patron;
-    $patron{'firstname'}    = $firstname; 
-    $patron{'surname'}      = $surname;
+    $patron{'firstname'}    = $firstnames[int rand @firstnames]; 
+    $patron{'surname'}      = $surnames[int rand @surnames];
     $patron{'cardnumber'}   = fixup_cardnumber(undef);
     $patron{'categorycode'} = $patroncategories->[int rand @{$patroncategories}];
     $patron{'branchcode'}   = $branchcodes->[int rand @{$branchcodes}];
@@ -83,15 +74,10 @@ foreach my $firstname (@firstnames) {
     # Borrowernumber is generated automatically and returned
     my $borrowernumber = AddMember(%patron);
 
-    if ($verbose) { print "$count $borrowernumber ", $patron{'cardnumber'}, " ", $patron{'firstname'}, " ", $patron{'surname'}, ", ", $patron{'categorycode'}, ", ", $patron{'branchcode'}, "\n" }
+    if ($verbose) { print "$count $borrowernumber $patron{'cardnumber'} $patron{'firstname'} $patron{'surname'}, $patron{'categorycode'}, $patron{'branchcode'}\n" }
     if ($debug) { print "$count\n", Dumper %patron }
 
     $count++;
-    if ($count == $limit) {
-      last SURNAME;
-    }
-
-  }
 
 }
 
