@@ -205,7 +205,7 @@ for ( my $i = 0; $i <= $j; $i++ ) {
       # Defaults to today.  Unlike C<$datedue>, NOT a C4::Dates object, unfortunately.
       my $datedue = AddIssue($borrower, $barcode->{'barcode'}, undef, undef, $date);
 
-      if ($verbose) { print "\tISSUE  Borrowernumber: " . $borrower->{'borrowernumber'} . " Barcode: " . $barcode->{'barcode'} . " Duedate: " . $datedue->output('iso') . "\n"; }
+      if ($verbose) { print "\tISSUE  Borrowernumber: " . $borrower->{'borrowernumber'} . " Barcode: " . $barcode->{'barcode'} . " Duedate: " . $datedue->ymd . "\n"; }
       
       $issues_done++;
       
