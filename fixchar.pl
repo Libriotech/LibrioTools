@@ -2,7 +2,7 @@
 
 # This needs to point to the file Charset.pm from Koha (http://koha-community.org/)
 # You probably need to change this line for the script to work on your system
-require "/home/magnus/scripts/kohanor32/C4/Charset.pm";
+require "/home/magnus/scripts/kohaclone/C4/Charset.pm";
 
 # You will also need to set the PERL5LIB environment variable to the directory on your 
 # system that contains the C4 directory of Koha
@@ -11,8 +11,7 @@ use MARC::File::USMARC;
 use Getopt::Long;
 use Pod::Usage;
 use Data::Dumper;
-use strict;
-use warnings;
+use Modern::Perl;
 binmode STDOUT, ":utf8";
 
 my ($input_file, $limit, $encoding_filter, $verbose) = get_options();
@@ -31,6 +30,20 @@ my $marcfile = MARC::File::USMARC->in($input_file);
 while ( my $record = $marcfile->next() ) {
 
   $c++;
+  
+  # Check that we have a 245
+  if ( !$record->field('245') ) {
+    if ( $verbose ) {
+      print Dumper $record, "\n";
+      print "\n\n--- $c -- Missing 245 ----------------------------------\n\n";
+    }
+    next;
+  }
+  
+  # Check that 245$a is not just "1"
+  if ( $record->field('245') && $record->field('245')->subfield('a') && $record->field('245')->subfield('a') eq "1" ) {
+    next;
+  }
 
   my ($new_record, $converted_from, $errors_arrayref) = C4::Charset::MarcToUTF8Record($record, 'NORMARC');
   # $new_record = C4::Charset::SetUTF8Flag($new_record);
@@ -43,8 +56,10 @@ while ( my $record = $marcfile->next() ) {
   }
 
   if ($verbose) { 
-    print $new_record->as_formatted(), "\n"; 
-    if ($errors_arrayref) {
+    print $record->as_usmarc(), "\n";
+    print "---\n"; 
+    print $new_record->as_formatted(), "\n";
+    if ($errors_arrayref->[0]) {
       print Dumper $errors_arrayref;
     }
     print "--- $c -- From: $converted_from ----------------------------------\n"; 

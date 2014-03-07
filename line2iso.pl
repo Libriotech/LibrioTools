@@ -23,6 +23,14 @@ use MARC::Record;
 use Getopt::Long;
 use File::Slurp;
 use strict;
+# binmode STDOUT, ":utf8";
+
+# line2iso.pl CONFIG
+
+# Make chomp() behave 
+# $/ = "\r\n";
+
+# END CONFIG
 
 # Options
 my $file = '';
@@ -69,9 +77,6 @@ my $record = MARC::Record->new();
 
 # Counter for records
 my $num = 0;
-
-# Make chomp() behave 
-$/ = "\r\n";
 
 foreach my $line (@lines) {
 	
@@ -135,8 +140,12 @@ foreach my $line (@lines) {
     
     foreach my $subfield (@subfields) {
       
+      chomp( $subfield );
+      # $subfield =~ m/(.*)\s$/;
+      # $subfield = $1;
+      
       # Skip short subfields     
-      if (length($subfield) < 1) {
+      if (length($subfield) && length($subfield) < 1) {
 	  	next;
       }
       

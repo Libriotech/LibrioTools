@@ -307,6 +307,10 @@ Show values from this subfield, e.g. 600a, 600, 60., 6.., all
 
 Write output as HTML to the directory given as argument, e.g. --html /tmp/html. Currently implemented for --valueof and the default behaviour. 
 
+=item B<-l, --limit>
+
+Only process the n first records.
+
 =item B<-v --verbose>
 
 Prettyprint found records 
