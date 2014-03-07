@@ -79,7 +79,7 @@ for (my $i=0; $i < $count; $i++) {
 	# Holdings
         # FIXME This actually gives us the status of holdings right now, not at the end of the given year
         # It could be done with this number minus the number of additions since the end of the given year..
-	my $hold_query = "SELECT count(biblionumber)
+	my $hold_query = "SELECT count(*)
 					FROM items 
 					WHERE homebranch = '" . $homebranch . "'
 					AND " . orify('itype', @{$itemtypes[$i]{'itypes'}});
@@ -89,7 +89,7 @@ for (my $i=0; $i < $count; $i++) {
 	$itemtypes[$i]{'holdings'} = $hold_count;
 	
 	# Additions
-	my $acq_query = "SELECT count(biblionumber)
+	my $acq_query = "SELECT count(*)
 					FROM items 
 					WHERE YEAR(dateaccessioned) = $year
 					AND homebranch = '" . $homebranch . "'
@@ -101,7 +101,7 @@ for (my $i=0; $i < $count; $i++) {
 	$itemtypes[$i]{'added'} = $acq_count;
 	
 	# Deletions
-	my $del_query = "SELECT count(itemnumber) 
+	my $del_query = "SELECT count(*) 
 	                 FROM deleteditems
 	                 WHERE YEAR(timestamp) = $year 
 	                 AND homebranch = '" . $homebranch . "'
