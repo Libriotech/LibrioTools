@@ -22,12 +22,12 @@ use MARC::File::XML;
 use MARC::Record;
 use Getopt::Long;
 use File::Slurp;
-use strict;
+use Modern::Perl;
 # binmode STDOUT, ":utf8";
 
 # line2iso.pl CONFIG
 
-# Make chomp() behave 
+# Make chomp() behave
 # $/ = "\r\n";
 
 # END CONFIG
@@ -37,8 +37,8 @@ my $file = '';
 my $xml = '';
 my $limit = '';
 GetOptions (
-  'i|input=s' => \$file, 
-  'l|limit=i' => \$limit, 
+  'i|input=s' => \$file,
+  'l|limit=i' => \$limit,
   'x|xml' => \$xml 
 );
 
@@ -78,6 +78,10 @@ my $record = MARC::Record->new();
 # Counter for records
 my $num = 0;
 
+if ( $xml ) {
+    say MARC::File::XML::header();
+}
+
 foreach my $line (@lines) {
 	
   chomp($line);
@@ -88,13 +92,14 @@ foreach my $line (@lines) {
   	next;
   }
 
-  if ($line =~ /\^/) {
+  if ($line =~ /^\^$/) {
   	
   	# print "\nEND OF RECORD $num";
   	
   	# Output the record
   	if ($xml) {
-  	  print $record->as_xml(), "\n";
+      # print $record->as_xml_record(), "\n";
+      say MARC::File::XML::record( $record );
   	} else {
   	  print $record->as_usmarc(), "\n";
   	}
@@ -134,35 +139,38 @@ foreach my $line (@lines) {
     }
     
     my $subs  = substr $line, 7;
-    my @subfields = split(/\$/, $subs);
-    my $subfield_count = 0;
-    my $newfield = "";
-    
-    foreach my $subfield (@subfields) {
-      
-      chomp( $subfield );
-      # $subfield =~ m/(.*)\s$/;
-      # $subfield = $1;
-      
-      # Skip short subfields     
-      if (length($subfield) && length($subfield) < 1) {
-	  	next;
-      }
-      
-      my $index = substr $subfield, 0, 1;
-      my $value = substr $subfield, 1;
-      
-      if ($subfield_count == 0) {
-        $newfield = MARC::Field->new($field, $ind1, $ind2, $index => $value);
-      } else {
-        $newfield->add_subfields($index, $value);
-      }
+    if ( $subs ) {
+        my @subfields = split(/\$/, $subs);
+        my $subfield_count = 0;
+        my $newfield = "";
+
+        foreach my $subfield (@subfields) {
           
-      $subfield_count++;
-      
+            chomp( $subfield );
+            # $subfield =~ m/(.*)\s$/;
+            # $subfield = $1;
+
+            # Skip short subfields
+            if (length($subfield) && length($subfield) < 1) {
+                next;
+            }
+
+            my $index = substr $subfield, 0, 1;
+            my $value = substr $subfield, 1;
+
+            if ($subfield_count == 0) {
+                $newfield = MARC::Field->new($field, $ind1, $ind2, $index => $value);
+            } else {
+                $newfield->add_subfields($index, $value);
+            }
+
+            $subfield_count++;
+
+        }
+
+        $record->append_fields($newfield);
+
     }
-    
-    $record->append_fields($newfield);
     
   } else {
   	
@@ -172,6 +180,10 @@ foreach my $line (@lines) {
   
   }
   
+}
+
+if ( $xml ) {
+    say MARC::File::XML::footer();
 }
 
 # print "\n$num records processed\n";
