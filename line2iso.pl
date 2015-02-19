@@ -23,24 +23,26 @@ use MARC::Record;
 use Getopt::Long;
 use File::Slurp;
 use Modern::Perl;
-# binmode STDOUT, ":utf8";
-
-# line2iso.pl CONFIG
-
-# Make chomp() behave
-# $/ = "\r\n";
-
-# END CONFIG
+binmode STDOUT, ":encoding(UTF-8)";
 
 # Options
-my $file = '';
-my $xml = '';
-my $limit = '';
+my $file    = '';
+my $rn      = '';
+my $xml     = '';
+my $limit   = '';
+my $verbose = '';
 GetOptions (
   'i|input=s' => \$file,
+  'r|rn'      => \$rn,
   'l|limit=i' => \$limit,
-  'x|xml' => \$xml 
+  'x|xml'     => \$xml,
+  'v|verbose' => \$verbose,
 );
+
+if ( $rn ) {
+    # Make chomp() remove weird line endings
+    $/ = "\r\n";
+}
 
 # Usage
 if (!$file) {
@@ -52,9 +54,10 @@ Usage:
   ./line2iso.pl -i in.txt -x > out.xml
 
 Options:
-  -i --input = Input file
+  -i --input  = Input file
+  -r, --rn    = Assume line endings are \r\n
   -l, --limit = Limit outout to first n records
-  -x --xml = Outout as MARCXML
+  -x --xml    = Outout as MARCXML
 
 See also:
   yaz-marcdump http://www.indexdata.com/yaz/doc/yaz-marcdump.html
@@ -70,7 +73,9 @@ if (!-e $file) {
 }
 
 # Slurp file
+say "Going to read $file..." if $verbose;
 my @lines = read_file($file);
+say "Done" if $verbose;
 
 # Start an empty record
 my $record = MARC::Record->new();
@@ -82,6 +87,7 @@ if ( $xml ) {
     say MARC::File::XML::header();
 }
 
+my $line_count = 0;
 foreach my $line (@lines) {
 	
   chomp($line);
@@ -92,9 +98,9 @@ foreach my $line (@lines) {
   	next;
   }
 
-  if ($line =~ /^\^$/) {
+  if ($line =~ /^\^/) {
   	
-  	# print "\nEND OF RECORD $num";
+    say "\nEND OF RECORD $num" if $verbose;
   	
   	# Output the record
   	if ($xml) {
@@ -180,6 +186,9 @@ foreach my $line (@lines) {
   
   }
   
+  say "Line $line_count" if $verbose;
+  $line_count++;
+
 }
 
 if ( $xml ) {
