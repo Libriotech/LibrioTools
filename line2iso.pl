@@ -57,7 +57,7 @@ Options:
   -i --input  = Input file
   -r, --rn    = Assume line endings are \r\n
   -l, --limit = Limit outout to first n records
-  -x --xml    = Outout as MARCXML
+  -x --xml    = Output as MARCXML
 
 See also:
   yaz-marcdump http://www.indexdata.com/yaz/doc/yaz-marcdump.html
@@ -102,8 +102,9 @@ foreach my $line (@lines) {
   	
     say "\nEND OF RECORD $num" if $verbose;
   	
-  	# Output the record
-  	if ($xml) {
+    # Output the record
+    $record->encoding( 'UTF-8' );
+    if ($xml) {
       # print $record->as_xml_record(), "\n";
       say MARC::File::XML::record( $record );
   	} else {
