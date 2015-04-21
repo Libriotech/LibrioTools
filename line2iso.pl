@@ -23,21 +23,26 @@ use MARC::Record;
 use Getopt::Long;
 use File::Slurp;
 use Modern::Perl;
-binmode STDOUT, ":encoding(UTF-8)";
 
 # Options
 my $file    = '';
 my $rn      = '';
+my $encode  = '';
 my $xml     = '';
 my $limit   = '';
 my $verbose = '';
 GetOptions (
   'i|input=s' => \$file,
   'r|rn'      => \$rn,
+  'e|encode'  => \$encode,
   'l|limit=i' => \$limit,
   'x|xml'     => \$xml,
   'v|verbose' => \$verbose,
 );
+
+if ( $encode ) {
+    binmode STDOUT, ":encoding(UTF-8)";
+}
 
 if ( $rn ) {
     # Make chomp() remove weird line endings
@@ -54,10 +59,11 @@ Usage:
   ./line2iso.pl -i in.txt -x > out.xml
 
 Options:
-  -i --input  = Input file
-  -r, --rn    = Assume line endings are \r\n
-  -l, --limit = Limit outout to first n records
-  -x --xml    = Output as MARCXML
+  -i --input   = Input file
+  -r, --rn     = Assume line endings are \r\n
+  -e, --encode = Apply: binmode STDOUT, :encoding(UTF-8)
+  -l, --limit  = Limit outout to first n records
+  -x --xml     = Output as MARCXML
 
 See also:
   yaz-marcdump http://www.indexdata.com/yaz/doc/yaz-marcdump.html
