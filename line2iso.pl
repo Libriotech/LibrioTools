@@ -18,7 +18,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 use MARC::File::USMARC;
-use MARC::File::XML;
+use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'NORMARC' );
 use MARC::Record;
 use Getopt::Long;
 use File::Slurp;
@@ -138,9 +138,12 @@ foreach my $line (@lines) {
   	next;
   }
   
+  # Get the 3 first characters, this should be a MARC tag/field
   my $field = substr $line, 1, 3;
   
   if ($field ne "000" && $field ne "001" && $field ne "007" && $field ne "008") {
+
+    # We have a data field, not a control field
   	
     my $ind1  = substr $line, 4, 1;
     if ($ind1 eq " ") {
@@ -151,8 +154,10 @@ foreach my $line (@lines) {
       $ind2 = "";
     }
     
+    # Get everyting from character 7 and to EOL
     my $subs  = substr $line, 7;
     if ( $subs ) {
+        # Split the string on field delimiters, $
         my @subfields = split(/\$/, $subs);
         my $subfield_count = 0;
         my $newfield = "";
@@ -171,6 +176,9 @@ foreach my $line (@lines) {
             my $index = substr $subfield, 0, 1;
             my $value = substr $subfield, 1;
 
+            # Skip any subfields that are weird characters
+            next if $index !~ m/[0-9a-zæøåA-ZÆØÅ]/;
+
             if ($subfield_count == 0) {
                 $newfield = MARC::Field->new($field, $ind1, $ind2, $index => $value);
             } else {
@@ -186,7 +194,9 @@ foreach my $line (@lines) {
     }
     
   } else {
-  	
+
+    # We have a control field
+
   	my $value = substr $line, 4;
     my $field = MARC::Field->new($field, $value);
     $record->append_fields($field);
@@ -200,6 +210,7 @@ foreach my $line (@lines) {
 
 if ( $xml ) {
     say MARC::File::XML::footer();
+    print "\n";
 }
 
 # print "\n$num records processed\n";
