@@ -20,6 +20,7 @@
 use MARC::File::USMARC;
 use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'NORMARC' );
 use MARC::Record;
+use String::Util 'trim';
 use Getopt::Long;
 use File::Slurp;
 use Modern::Perl;
@@ -104,29 +105,37 @@ foreach my $line (@lines) {
   	next;
   }
 
+  # Look for lines that begin with a ^ - these are record delimiters
   if ($line =~ /^\^/) {
   	
     say "\nEND OF RECORD $num" if $verbose;
   	
-    # Output the record
+    # Make sure the encoding is set
     $record->encoding( 'UTF-8' );
-    if ($xml) {
-      # print $record->as_xml_record(), "\n";
-      say MARC::File::XML::record( $record );
-  	} else {
-  	  print $record->as_usmarc(), "\n";
+
+    # Check that the record has a 245$a
+    if ( $record->field( '245' ) && $record->field( '245' )->subfield( 'a' ) ne '' ) {
+
+        # Output the record in the desired format
+        if ($xml) {
+            # print $record->as_xml_record(), "\n";
+            say MARC::File::XML::record( $record );
+        } else {
+            print $record->as_usmarc(), "\n";
+        }
+
+        # Count the records
+        $num++;
+
+        # Check if we should quit here
+        if ($limit && $limit == $num) {
+            last;
+        }
+
   	}
   	
   	# Start over with an empty record
   	$record = MARC::Record->new();
-  	
-  	# Count the records
-  	$num++;
-  	
-  	# Check if we should quit here
-  	if ($limit && $limit == $num) {
-  		last;
-  	}
   	
   	# Process the next line
   	next;
@@ -141,7 +150,7 @@ foreach my $line (@lines) {
   # Get the 3 first characters, this should be a MARC tag/field
   my $field = substr $line, 1, 3;
   
-  if ($field ne "000" && $field ne "001" && $field ne "007" && $field ne "008") {
+  if ($field ne "000" && $field ne "001" && $field ne "003" && $field ne "005" && $field ne "006" && $field ne "007" && $field ne "008") {
 
     # We have a data field, not a control field
   	
@@ -157,6 +166,7 @@ foreach my $line (@lines) {
     # Get everyting from character 7 and to EOL
     my $subs  = substr $line, 7;
     if ( $subs ) {
+
         # Split the string on field delimiters, $
         my @subfields = split(/\$/, $subs);
         my $subfield_count = 0;
@@ -164,9 +174,7 @@ foreach my $line (@lines) {
 
         foreach my $subfield (@subfields) {
           
-            chomp( $subfield );
-            # $subfield =~ m/(.*)\s$/;
-            # $subfield = $1;
+            trim( $subfield );
 
             # Skip short subfields
             if (length($subfield) && length($subfield) < 1) {
@@ -176,13 +184,12 @@ foreach my $line (@lines) {
             my $index = substr $subfield, 0, 1;
             my $value = substr $subfield, 1;
 
-            # Skip any subfields that are weird characters
-            next if $index !~ m/[0-9a-zæøåA-ZÆØÅ]/;
-
             if ($subfield_count == 0) {
-                $newfield = MARC::Field->new($field, $ind1, $ind2, $index => $value);
+                 # This is the first subfield, so we create a new field
+                $newfield = MARC::Field->new( $field, $ind1, $ind2, $index => $value );
             } else {
-                $newfield->add_subfields($index, $value);
+                # Subsequent subfields are added to the existing field
+                $newfield->add_subfields( $index, $value );
             }
 
             $subfield_count++;
