@@ -25,10 +25,10 @@
 use Getopt::Long;
 use Pod::Usage;
 use MARC::File::USMARC;
-use MARC::File::XML;
+use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'NORMARC' );
 use String::Strip;
 use Encode;
-binmode STDOUT, ":utf8";
+# binmode STDOUT, ":utf8";
 
 use strict;
 
@@ -36,7 +36,7 @@ use strict;
 open STDERR, ">&STDOUT" or die "cannot dup STDERR to STDOUT: $!\n";
 
 ## get command line options
-my ($input_file, $client, $limit, $debug, $xml) = get_options();
+my ($input_file, $iso2709, $client, $limit, $debug, $xml) = get_options();
 print "\nStarting n4k.pl\n"              if $debug;
 print "Input File: $input_file\n"        if $debug;
 print "Converting records for $client\n" if $debug;
@@ -48,7 +48,12 @@ if (!-e $input_file) {
 	die "Couldn't find input file $input_file\n";
 }
 
-my $batch = MARC::File::USMARC->in($input_file);
+my $batch;
+if ( $iso2709 ) {
+    $batch = MARC::File::USMARC->in( $input_file );
+} else {
+    $batch = MARC::File::XML->in( $input_file );
+}
 my $count = 0;
 
 my $xmloutfile = '';
@@ -59,7 +64,9 @@ if ($xml && !$debug) {
 print "Starting records iteration\n" if $debug;
 ## iterate through our marc files and do stuff
 while (my $record = $batch->next()) {
-  
+
+    $record->encoding( 'UTF-8' );
+
 	# print the record before it is transformed
 	print "\n################# $count  ####################\n" if $debug;
 	print $record->title(), "\n" if $debug;
@@ -151,17 +158,19 @@ sub format_date {
 # Get commandline options
 sub get_options {
   my $input_file = '';
-  my $client = '';
-  my $debug = '';
-  my $limit = 0;
-  my $xml = '';
-  my $help = '';
+  my $iso2709    = '';
+  my $client     = '';
+  my $debug      = '';
+  my $limit      = 0;
+  my $xml        = '';
+  my $help       = '';
 
   GetOptions("i|infile=s" => \$input_file,
+             "s|iso2709"  => \$iso2709,
 	         "c|client=s" => \$client, 
-             "d|debug!" => \$debug,
-             "x|xml=s" => \$xml, 
-			 "l|limit=s" => \$limit, 
+             "d|debug!"   => \$debug,
+             "x|xml=s"    => \$xml, 
+			 "l|limit=s"  => \$limit, 
              'h|?|help'   => \$help
              );
   
@@ -169,7 +178,7 @@ sub get_options {
   pod2usage( -msg => "\nMissing Argument: -i, --infile required\n", -exitval => 1) if !$input_file;
   pod2usage( -msg => "\nMissing Argument: -c, --client required\n", -exitval => 1) if !$client;
 
-  return ($input_file, $client, $limit, $debug, $xml);
+  return ($input_file, $iso2709, $client, $limit, $debug, $xml);
 }       
 
 sub getToday {
@@ -200,6 +209,11 @@ n4k.pl -i inputfile -c client [-d] [-l] [-x] [-h] > outputfile
 =item B<-i, --infile>
 
 Name of the MARC file to be read.
+
+=item B<-s, --iso2709>
+
+The input file is in ISO2709 format (as opposed to MARCXML, which is the 
+default).
 
 =item B<-c, --client>
 
