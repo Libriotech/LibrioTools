@@ -32,6 +32,8 @@ my $encode  = '';
 my $xml     = '';
 my $limit   = '';
 my $verbose = '';
+my $debug   = '';
+
 GetOptions (
   'i|input=s' => \$file,
   'r|rn'      => \$rn,
@@ -39,6 +41,7 @@ GetOptions (
   'l|limit=i' => \$limit,
   'x|xml'     => \$xml,
   'v|verbose' => \$verbose,
+  'd|debug'   => \$debug,
 );
 
 if ( $encode ) {
@@ -65,6 +68,8 @@ Options:
   -e, --encode = Apply: binmode STDOUT, :encoding(UTF-8)
   -l, --limit  = Limit outout to first n records
   -x --xml     = Output as MARCXML
+  -v --verbose = Verbose output
+  -d --debug   = Debug-output
 
 See also:
   yaz-marcdump http://www.indexdata.com/yaz/doc/yaz-marcdump.html
@@ -99,6 +104,8 @@ foreach my $line (@lines) {
 	
   chomp($line);
   
+  say $line if $debug;
+  
   # For some reason some lines begin with "**"
   # These seem to be errors of some kind, so we skip them
   if ($line =~ /^\*\*/) {
@@ -114,7 +121,7 @@ foreach my $line (@lines) {
     $record->encoding( 'UTF-8' );
 
     # Check that the record has a 245$a
-    if ( $record->field( '245' ) && $record->field( '245' )->subfield( 'a' ) ne '' ) {
+    if ( $record->field( '245' ) && $record->field( '245' )->subfield( 'a' ) && $record->field( '245' )->subfield( 'a' ) ne '' ) {
 
         # Output the record in the desired format
         if ($xml) {
